@@ -12,9 +12,9 @@ logo_url:           https://avatars.githubusercontent.com/u/28665142?v=4 # Get i
 
 # Site Settings
 url:                https://echen01.github.io # main url
-baseurl:            /the-plain-academic
+# baseurl:            /the-plain-academic
 permalink:          /:title # Post permalink
-timezone:           America/Recife # https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+timezone:           America/New_York # https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 mathjax:            true  # enables support for mathjax - set to 'false' to disable
 
 # Site Build

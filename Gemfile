@@ -2,6 +2,9 @@
 
 source "https://rubygems.org"
 
+
+
+gem "jekyll-sitemap"
 gem 'jekyll-remote-theme'
 
 # gem "rails"
