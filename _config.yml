@@ -31,18 +31,18 @@ exclude:            [ "LICENSE", "README.md", "CNAME", "vendor", "Gemfile", "scr
 plugins:
   - jekyll-sitemap
 collections:
-  researches:
-    output: true
-    permalink: /researches/:name
+  # research:
+  #   output: true
+  #   permalink: /research/:name
   projects:
     output: true
     permalink: /projects/:name
-  talks:
-    output: true
-    permalink: /talks/:name
-  blog:
-    output: true
-    permalink: /blog/:name
+  # talks:
+  #   output: true
+  #   permalink: /talks/:name
+  # blog:
+  #   output: true
+  #   permalink: /blog/:name
 
 defaults:
   -
