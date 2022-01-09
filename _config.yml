@@ -8,7 +8,7 @@ remote_theme: heiswayi/the-plain
 title:              "Eric M. Chen"
 description:        "My personal site"
 author_name:        "Eric Ming Chen"
-logo_url:           https://avatars3.githubusercontent.com/u/17532418?s=460&v=4 # Get it from GitHub API: https://api.github.com/users/<username>
+logo_url:           https://avatars.githubusercontent.com/u/28665142?v=4 # Get it from GitHub API: https://api.github.com/users/<username>
 
 # Site Settings
 url:                https://echen01.github.io # main url
