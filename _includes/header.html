@@ -1,4 +1,4 @@
-<link href="https://fonts.googleapis.com/css?family=Cutive+Mono" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css?family=Source+Serif+Pro" rel="stylesheet">
 
 <aside class="logo">
 
@@ -14,17 +14,11 @@
 <aside class="menu">
 
 	<ul class="top-menu">
-		{% if page.url != '/about' %}
-			{% assign link = '/about' %}
+		{% if page.url != '/index' %}
+			{% assign link = '/index' %}
 			<li> <a href="{{ link | prepend: site.baseurl | prepend: site.url }}"> About </a> </li>
 		{% else %}
 			<li style="font-weight:bold;"> <a> About </a> </li>
-		{% endif %}
-		{% if page.url != '/research' %}
-			{% assign link = '/research' %}
-			<li> <a href="{{ link | prepend: site.baseurl | prepend: site.url }}"> Research </a> </li>
-		{% else %}
-			<li style="font-weight:bold;"> <a> Researches </a> </li>
 		{% endif %}
 		{% if page.url != '/projects' %}
 			{% assign link = '/projects' %}

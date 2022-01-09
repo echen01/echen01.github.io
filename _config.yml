@@ -12,7 +12,7 @@ logo_url:           https://avatars.githubusercontent.com/u/28665142?v=4 # Get i
 
 # Site Settings
 url:                https://echen01.github.io # main url
-# baseurl:            /the-plain-academic
+# baseurl:            /
 permalink:          /:title # Post permalink
 timezone:           America/New_York # https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 mathjax:            true  # enables support for mathjax - set to 'false' to disable
@@ -62,7 +62,7 @@ defaults:
       layout:       "post"
   -
     scope:
-      type:         "researches"
+      type:         "research"
     values:
       layout:       "research-post"
   -
