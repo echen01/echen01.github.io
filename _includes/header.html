@@ -20,6 +20,13 @@
 		{% else %}
 			<li style="font-weight:bold;"> <a> About </a> </li>
 		{% endif %}
+		
+		{% if page.url != '/coursework' %}
+			{% assign link = '/coursework' %}
+			<li> <a href="{{ link | prepend: site.baseurl | prepend: site.url }}"> Coursework </a> </li>
+		{% else %}
+			<li style="font-weight:bold;"> <a> About </a> </li>
+		{% endif %}
 
 		
 	</ul>

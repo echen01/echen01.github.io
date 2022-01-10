@@ -1,21 +1,8 @@
 ---
 layout: page
-title: Eric Ming Chen
+title: Coursework
 ---
-
-# Eric Ming Chen
-I am a sophomore at Cornell University studying computer science! My
-interests include computer vision and geometric deep
-learning. Recently I've been particularly interested in image-based
-rendering and geometric deep learning.
-
-
-## Activities
-
-## Writings
-- [The elegant geometry behind Rwanda’s COVID-19 pooled testing strategy [Cornell Data Journal, Dec. 2020]](https://cornelldatajourn.al/articles/elegant-geometry)
-
-## Coursework
+# Coursework
 
 ### In Progress
 - ASIAN 2279: Chinese Mythology
@@ -34,7 +21,7 @@ rendering and geometric deep learning.
 ### Freshman Year
 - CS 2110: Object Oriented Programming and Data Structures
 - CS 2802: Discrete Structures - Honors
-- CS 3110: Data Structures and Functional Programming
+- [CS 3110: Data Structures and Functional Programming](/CS3110)
 - CS 4220: Numerical Analysis - Linear and Nonlinear Problems
 - CS 4670: Intro to Computer Vision
 - CS 6682: Computation for Content Creation
