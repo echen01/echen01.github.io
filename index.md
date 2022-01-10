@@ -1,37 +1,44 @@
-## Welcome to GitHub Pages
+# Eric Ming Chen
+I am a sophomore at Cornell University studying computer science! My
+interests include computer vision and geometric deep
+learning. Recently I've been particularly interested in image-based
+rendering and geometric deep learning.
 
-You can use the [editor on GitHub](https://github.com/echen01/echen01.github.io/edit/main/index.md) to maintain and preview the content for your website in Markdown files.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+## Activities
 
-### Markdown
+## Writings
+- [The elegant geometry behind Rwanda’s COVID-19 pooled testing strategy [Cornell Data Journal, Dec. 2020]]: https://cornelldatajourn.al/articles/elegant-geometry
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+## Coursework
 
-```markdown
-Syntax highlighted code block
+### In Progress
+- ASIAN 2279: Chinese Mythology
+- KOREA 1102: Elementary Korean II
+- CS 4820: Introduction to the Analysis of Algorithms
+- CS 5625: Interactive Computer Graphics
+- ORIE 6334: Combinatorial Optimization
 
-# Header 1
-## Header 2
-### Header 3
+### Sophomore Year
+- KOREA 1101: Elementary Korean I
+- CS 4999: Independent Reading and Research (with Hadar Averbuch-Elor
+  and Noah Snavely)
+- MATH 4130: Honors Introduction to Analysis I
+- MATH 4710: Basic Probability
 
-- Bulleted
-- List
+### Freshman Year
+- CS 2110: Object Oriented Programming and Data Structures
+- CS 2802: Discrete Structures - Honors
+- CS 3110: Data Structures and Functional Programming
+- CS 4220: Numerical Analysis - Linear and Nonlinear Problems
+- CS 4670: Intro to Computer Vision
+- CS 6682: Computation for Content Creation
+- MATH 2230: Theoretical Linear Algebra and Calculus I 
+- MATH 2240: Theoretical Linear Algebra and Calculus II
 
-1. Numbered
-2. List
+### TA Experience
+- CS 4220: Numerical Analysis - Linear and Nonlinear Problems (SP22)
+- CS 3220: Computational Mathematics for Computer Science (FA21)
+- CS 2110: Object Oriented Programming and Data Structures (SP21)
 
-**Bold** and _Italic_ and `Code` text
 
-[Link](url) and ![Image](src)
-```
-
-For more details see [Basic writing and formatting syntax](https://docs.github.com/en/github/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/echen01/echen01.github.io/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
