@@ -1,6 +1,5 @@
 ---
 layout: page
-title: Eric Ming Chen
 ---
 
 # About
@@ -10,7 +9,7 @@ rendering and geometric deep learning. I conduct research with [Hadar
 Averbuch-Elor](https://www.cs.cornell.edu/~hadarelor/), [Jin
 Sun](https://www.cs.cornell.edu/~jinsun/) and [Noah
 Snavely](https://www.cs.cornell.edu/~snavely/) at Cornell Tech; and
-with [Cornell University Artificial Intelligence](https://cuai.github.io/).
+with [CUAI](https://cuai.github.io/).
 
 **Email:** emc348[at]cornell.edu &nbsp;&nbsp; **Github:** [echen01](https://github.com/echen01)
 
@@ -18,7 +17,6 @@ with [Cornell University Artificial Intelligence](https://cuai.github.io/).
 
 ## Research
 #### Synthesizing Across Time
-
 - Building a model to capture and manipulate style across 20th century portraits. 
 
 #### Riemannian Residual Neural Networks

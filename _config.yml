@@ -5,7 +5,7 @@ remote_theme: heiswayi/the-plain
 
 
 # Site Info
-title:              "About"
+title:              "Eric M. Chen"
 description:        "My personal site"
 author_name:        "Eric M. Chen"
 logo_url:           https://avxatars.githubusercontent.com/u/28665142?v=4 # Get it from GitHub API: https://api.github.com/users/<username>
