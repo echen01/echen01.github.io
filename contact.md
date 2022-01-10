@@ -2,6 +2,7 @@
 layout: page
 title: Contact
 ---
+# Contact
 
 **E-mail:** emc348[at]cornell.edu
 

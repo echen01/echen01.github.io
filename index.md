@@ -28,17 +28,17 @@ with [Cornell University Artificial Intelligence](https://cuai.github.io/).
 
 ## Activities
 <p align="center">
-<img src="/assets/activities/applefest.jpg" width="75%"/><br>
+<img src="/assets/activities/applefest.jpg" width="85%"/><br>
 Celebrating Ithaca Apple Fest [2021]
 </p>
 
 <p align="center">
-<img src="/assets/activities/graduation.jpg" width="75%"/><br>
+<img src="/assets/activities/graduation.jpg" width="85%"/><br>
 Receiving my Stuy diploma from Mr. Blay after a year of online schooling [2021]
 </p>
 
 <p align="center">
-<img src="/assets/activities/pumpkin_patch.png" width="75%"/><br>
+<img src="/assets/activities/pumpkin_patch.png" width="85%"/><br>
 Volunteering with StuyPulse and Bloomberg Philanthropies [2019]
 </p>
 
@@ -49,9 +49,7 @@ Volunteering with StuyPulse and Bloomberg Philanthropies [2019]
 
 ---
 
-## Coursework
-
-### In Progress
+## Coursework -- In Progress
 - ASIAN 2279: Chinese Mythology
 - KOREA 1102: Elementary Korean II
 - CS 4820: Introduction to the Analysis of Algorithms
