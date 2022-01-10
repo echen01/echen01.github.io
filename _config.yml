@@ -5,9 +5,9 @@ remote_theme: heiswayi/the-plain
 
 
 # Site Info
-title:              "Eric M. Chen"
+title:              "Eric Ming Chen"
 description:        "My personal site"
-author_name:        "Eric Ming Chen"
+author_name:        "Eric M. Chen"
 logo_url:           https://avatars.githubusercontent.com/u/28665142?v=4 # Get it from GitHub API: https://api.github.com/users/<username>
 
 # Site Settings
@@ -26,8 +26,8 @@ sass:
     style:          :compressed
 
 # Other Params
-include:            [ "robots.txt" ]
-exclude:            [ "LICENSE", "README.md", "CNAME", "vendor", "Gemfile", "script" ]
+include:            [ "robots.txt", "_coursework" ]
+exclude:            [ "LICENSE", "README.md", "CNAME", "vendor", "Gemfile" ]
 plugins:
   - jekyll-sitemap
 collections:
@@ -37,6 +37,9 @@ collections:
   projects:
     output: true
     permalink: /projects/:name
+  coursework:
+    output: true
+    permalink: /coursework/:name
   # talks:
   #   output: true
   #   permalink: /talks/:name
@@ -65,6 +68,11 @@ defaults:
       type:         "research"
     values:
       layout:       "research-post"
+  -
+    scope:
+      type:         "coursework"
+    values:
+      layout:       "page"
   -
     scope:
       type:         "projects"

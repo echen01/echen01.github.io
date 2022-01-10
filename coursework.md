@@ -19,14 +19,14 @@ title: Coursework
 - MATH 4710: Basic Probability
 
 ### Freshman Year
-- CS 2110: Object Oriented Programming and Data Structures
-- CS 2802: Discrete Structures - Honors
-- [CS 3110: Data Structures and Functional Programming](/CS3110)
-- CS 4220: Numerical Analysis - Linear and Nonlinear Problems
-- CS 4670: Intro to Computer Vision
-- CS 6682: Computation for Content Creation
-- MATH 2230: Theoretical Linear Algebra and Calculus I 
-- MATH 2240: Theoretical Linear Algebra and Calculus II
+- [CS 2110: Object Oriented Programming and Data Structures](https://echen01.notion.site/CS-2110-Object-Oriented-Programming-and-Data-Structures-e5557b0772bd4da3a3f78516201bbc78)
+- [CS 2802: Discrete Structures - Honors](https://echen01.notion.site/CS-2802-Discrete-Structures-Honors-a0c4ef78c7ad4ee3b649e1bf8eec9c13)
+- [CS 3110: Data Structures and Functional Programming](https://echen01.notion.site/CS-3110-Data-Structures-and-Functional-Programming-37b0fbf396014b54b60274c5a6e2df19)
+- [CS 4220: Numerical Analysis - Linear and Nonlinear Problems](https://echen01.notion.site/CS-4220-Numerical-Analysis-Linear-and-Nonlinear-Problems-68937231372b435ca76d5597258a96dc)
+- [CS 4670: Intro to Computer Vision](https://echen01.notion.site/CS-4670-Intro-to-Computer-Vision-21c3dbc5704640eda1f4cc998d7cd50b)
+- [CS 6682: Computation for Content Creation](https://echen01.notion.site/CS-6682-Computation-for-Content-Creation-745f60155f434f648c66e3b695d1f1d8)
+- [MATH 2230: Theoretical Linear Algebra and Calculus I](https://echen01.notion.site/MATH-2230-Theoretical-Linear-Algebra-and-Calculus-bd88771088c043a58aab94cd2702654d)
+- [MATH 2240: Theoretical Linear Algebra and Calculus II](https://echen01.notion.site/MATH-2240-Theoretical-Linear-Algebra-and-Calculus-c90d755cce1a426b82d724f2afa28dab)
 
 ### TA Experience
 - CS 4220: Numerical Analysis - Linear and Nonlinear Problems (SP22)

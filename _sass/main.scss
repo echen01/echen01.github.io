@@ -9,7 +9,7 @@ html {
   height: 100%;
 }
 body {
-  font-size: 14px;
+  font-size: 15px;
   line-height: 20px;
   font-weight: normal;
   font-style: normal;
@@ -191,7 +191,7 @@ iframe {
 ul,
 ol {
   margin: 20px 0;
-  padding-left: 50px;
+  padding-left: 25px;
   li {
     word-wrap: break-word;
   }
@@ -210,8 +210,10 @@ time {
   color: #555;
 }
 code,
+.code {
+  font-family: 'Fira Code', monospace;
+}
 pre,
-.code,
 .footnotes {
   font-family: 'Source Serif Pro', serif;
 }
