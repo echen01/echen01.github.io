@@ -13,7 +13,8 @@ body {
   line-height: 20px;
   font-weight: normal;
   font-style: normal;
-  font-family: 'Source Serif Pro', serif;
+  // font-family: 'Lora', serif;
+  font-family: 'Lora', serif;
   color: #333333;
   padding: 20px;
   margin: 0;
@@ -215,7 +216,7 @@ code,
 }
 pre,
 .footnotes {
-  font-family: 'Source Serif Pro', serif;
+  font-family: 'Lora', serif;
 }
 code {
   color: #f14e32;
@@ -231,8 +232,8 @@ pre {
   line-height: 1.4;
   white-space: pre;
   overflow-x: auto;
-  background-color: #f9f9f9;
-  border: 1px solid #ddd;
+  background-color: #1c1e26;
+  // border: 1px solid #ddd;
   padding: 1rem;
   code {
     font-size: 100%;

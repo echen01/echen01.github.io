@@ -2,6 +2,7 @@
 layout: page
 ---
 
+
 # About
 I'm Eric, a sophomore at Cornell University studying computer
 science! My interests include style-transfer, image-based
@@ -48,8 +49,7 @@ Volunteering with StuyPulse and Bloomberg Philanthropies [2019]
 ---
 
 ## Coursework -- In Progress
-- ASIAN 2279: Chinese Mythology
 - KOREA 1102: Elementary Korean II
-- CS 4820: Introduction to the Analysis of Algorithms
+- CS 4820: Introduction to Algorithms
 - CS 5625: Interactive Computer Graphics
 - ORIE 6334: Combinatorial Optimization

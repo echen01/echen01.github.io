@@ -3,9 +3,9 @@ layout: page
 title: Coursework
 ---
 # Coursework
+Here is a list of some course I've taken and some notes. 
 
 ### In Progress
-- ASIAN 2279: Chinese Mythology
 - KOREA 1102: Elementary Korean II
 - CS 4820: Introduction to the Analysis of Algorithms
 - CS 5625: Interactive Computer Graphics
@@ -21,8 +21,8 @@ title: Coursework
 ### Freshman Year
 - [CS 2110: Object Oriented Programming and Data Structures](https://echen01.notion.site/CS-2110-Object-Oriented-Programming-and-Data-Structures-e5557b0772bd4da3a3f78516201bbc78)
 - [CS 2802: Discrete Structures - Honors](https://echen01.notion.site/CS-2802-Discrete-Structures-Honors-a0c4ef78c7ad4ee3b649e1bf8eec9c13)
-- [CS 3110: Data Structures and Functional Programming](https://echen01.notion.site/CS-3110-Data-Structures-and-Functional-Programming-37b0fbf396014b54b60274c5a6e2df19)
-- [CS 4220: Numerical Analysis - Linear and Nonlinear Problems](https://echen01.notion.site/CS-4220-Numerical-Analysis-Linear-and-Nonlinear-Problems-68937231372b435ca76d5597258a96dc)
+- [CS 3110: Data Structures and Functional Programming](/coursework/cs3110)
+- [CS 4220: Numerical Analysis - Linear and Nonlinear Problems](/coursework/cs4220)
 - [CS 4670: Intro to Computer Vision](https://echen01.notion.site/CS-4670-Intro-to-Computer-Vision-21c3dbc5704640eda1f4cc998d7cd50b)
 - [CS 6682: Computation for Content Creation](https://echen01.notion.site/CS-6682-Computation-for-Content-Creation-745f60155f434f648c66e3b695d1f1d8)
 - [MATH 2230: Theoretical Linear Algebra and Calculus I](https://echen01.notion.site/MATH-2230-Theoretical-Linear-Algebra-and-Calculus-bd88771088c043a58aab94cd2702654d)
