@@ -7,6 +7,7 @@ Here is a list of some course I've taken and some notes.
 
 ### In Progress
 - KOREA 1102: Elementary Korean II
+- PHYS 2217: Honors Electricity and Magnetism
 - CS 4820: Introduction to the Analysis of Algorithms
 - CS 5625: Interactive Computer Graphics
 - ORIE 6334: Combinatorial Optimization

@@ -50,6 +50,7 @@ Volunteering with StuyPulse and Bloomberg Philanthropies [2019]
 
 ## Coursework -- In Progress
 - KOREA 1102: Elementary Korean II
+- PHYS 2217: Honors Electricity and Magnetism
 - CS 4820: Introduction to Algorithms
 - CS 5625: Interactive Computer Graphics
 - ORIE 6334: Combinatorial Optimization
