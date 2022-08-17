@@ -40,7 +40,7 @@ collections:
   coursework:
     output: true
     permalink: /coursework/:name
-  # talks:
+  #talks:
   #   output: true
   #   permalink: /talks/:name
   # blog:
