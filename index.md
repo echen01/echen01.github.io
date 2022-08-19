@@ -65,12 +65,16 @@ ICML 2022 Workshop on Topology, Algebra, and Geometry in ML\
 <!-- Volunteering with StuyPulse and Bloomberg Philanthropies [2019] -->
 <!-- </p> -->
 
-<!-- --- -->
 
-<!-- ## Writings -->
-<!-- - [The elegant geometry behind Rwanda’s COVID-19 pooled testing strategy [Cornell Data Journal, Dec. 2020]](https://cornelldatajourn.al/articles/elegant-geometry) -->
+# Writings
+<img src="/assets/covid.png" alt="Slice of Cube" style="float: left" height=150px>
+#### The elegant geometry behind Rwanda’s COVID-19 pooled testing strategy 
+**Eric M. Chen**, Medha Bulumulla, Megan Rochlin\
+Cornell Data Journal, Published Dec. 18, 2020 \
+[Article](https://cornelldatajourn.al/articles/elegant-geometry)
 
-<!-- --- -->
+
+---
 
 <!-- ## Coursework -- In Progress -->
 <!-- - KOREA 1102: Elementary Korean II -->
