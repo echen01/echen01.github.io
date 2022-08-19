@@ -46,7 +46,8 @@ ICML 2022 Workshop on Topology, Algebra, and Geometry in ML\
 [Poster](https://drive.google.com/file/d/1uWpzZ2SemGpIAClOSaVVQI-L4PZZ0xnU/view)
 
 
-
+ \* Equal Contribution
+ 
 ---
 
 <!-- ## Activities -->
