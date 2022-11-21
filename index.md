@@ -36,8 +36,18 @@ with [CUAI](https://cuai.github.io/).
   
 ---
 
-# Publications 
-<img src="/assets/rresnet.png" alt="RResNet" style="float: left" height=150px>
+# Publications and Preprints
+<img src="/assets/ftt.png" alt="Faces Transformed Across Deacdes"
+style="float: left; padding: 0px 10px 0px 0px" width=200px>
+#### What's in a Decade? Transforming Faces Through Time
+**Eric M. Chen**, Jin Sun, Apoorv Khandelwal, Dani Lischinski, Noah Snavely, Hadar Averbuch-Elor\
+ arXiv 2022\
+[Website](https://facesthroughtime.github.io)
+[Paper](https://arxiv.org/abs/2210.06642)
+
+<br>
+
+<img src="/assets/rresnet.png" alt="RResNet" style="float: left;padding: 0px 10px 0px 0px" width=200px>
 #### Riemannian Residual Neural Networks
 Isay Katsman\*, **Eric M. Chen\***, Sidhanth Holalkere\*, Anna Asch\*, Aaron
 Lou, Ser-Nam Lim, Christopher De Sa\
