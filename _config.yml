@@ -43,9 +43,9 @@ collections:
   #talks:
   #   output: true
   #   permalink: /talks/:name
-  # blog:
-  #   output: true
-  #   permalink: /blog/:name
+  blog:
+    output: true
+    permalink: /blog/:name
 
 defaults:
   -

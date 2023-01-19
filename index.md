@@ -19,15 +19,27 @@ with [CUAI](https://cuai.github.io/).
 
 # Research
 ## Computer Vision
-#### Synthesizing Faces Across Time
+I'm interested in many areas of computer vision, many of which deal
+with content creation. 
+
+#### Light Fields
+- Light fields are a classic scene representation for image based
+  rendering. While light fields have seemingly fallen by the wayside
+  as radiance fields have gained popularity, I think the fact that they allow for real-time view synthesis
+  is still useful. 
+- I am actively investigating how light fields can be used for content generation.
+  
+#### Transforming Faces Through Time
 - Have you ever imagined how Charlie Chaplin would have looked like
   today, or how a celebrity would have looked in the 1920s? We take a
   data driven approach to picture how a person would look in another decade's
   style. 
-- We introduce a new image dataset consisting of over 25k historical people taken from
+- We introduced a new image dataset consisting of over 25k historical people taken from
   the Wikimedia Commons. 
 
 ## Geometric Machine Learning
+I am also interested in discovering where geometry and symmetry play
+unexpected roles in data. 
 #### Riemannian Residual Neural Networks
 - We introduce a simple and general way to design residual neural
   networks on smooth manifolds. 
@@ -84,6 +96,24 @@ ICML 2022 Workshop on Topology, Algebra, and Geometry in ML\
 Cornell Data Journal, Published Dec. 18, 2020 \
 [Article](https://cornelldatajourn.al/articles/elegant-geometry)
 
+
+---
+
+
+# Projects
+<img src="/assets/eevee_4096spp.jpg" alt="Eevee Render" style="float:
+left; padding: 0px 10px 0px 0px" height=225px>
+#### Cornell Rendering Competition Submission
+<!-- ![Eevee Render](/assets/eevee_4096spp.jpg) -->
+I was the runner up to the [Cornell CS
+6630](http://www.cs.cornell.edu/courses/cs6630/2022fa/) rendering
+competition. I won a copy of Fundamentals of Computer Graphics signed
+by Steve Marschner!\
+[Slides](https://docs.google.com/presentation/d/1sD9ssQDia5MyNVh9C2T2vm0nJKu6AfuB9uah9HGy74Y/edit?usp=sharing)\
+<br>
+<br>
+<br>
+<br>
 
 ---
 

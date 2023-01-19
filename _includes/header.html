@@ -7,10 +7,10 @@
 	{% assign link = '/' %}
 	{% assign prompt = 'Back to home' %}
 
-	<a href="{{ link | prepend: site.baseurl | prepend: site.url }}">
-		<img src={{site.logo_url}} class="logo-avatar">
-	</a>
-	<span class="logo-prompt code">{{ prompt }}</span>
+    <a href="{{ link | prepend: site.baseurl | prepend: site.url }}">
+	<img src={{site.logo_url}} class="logo-avatar">
+    </a>
+    <span class="logo-prompt code">{{ prompt }}</span>
 </aside>
 
 <aside class="menu">
@@ -21,13 +21,21 @@
 			<li> <a href="{{ link | prepend: site.baseurl | prepend: site.url }}"> About </a> </li>
 		{% else %}
 			<li style="font-weight:bold;"> <a> About </a> </li>
-		{% endif %}
-		
-		{% if page.url != '/coursework' %}
-			{% assign link = '/coursework' %}
-			<li> <a href="{{ link | prepend: site.baseurl | prepend: site.url }}"> Coursework </a> </li>
+		{% endif %}	
+
+		{% if page.url != '/blog' %}
+			{% assign link = '/blog' %}
+			<li> <a href="{{ link | prepend: site.baseurl | prepend: site.url }}"> Blog </a> </li>
 		{% else %}
-			<li style="font-weight:bold;"> <a> Coursework </a> </li>
+			<li style="font-weight:bold;"> <a> Blog </a> </li>
+		{% endif %}
+
+
+		{% if page.url != '/coursework' %}
+		    {% assign link = '/coursework' %}
+		    <li> <a href="{{ link | prepend: site.baseurl | prepend: site.url }}"> Coursework </a> </li>
+		{% else %}
+		    <li style="font-weight:bold;"> <a> Coursework </a> </li>
 		{% endif %}
 
 		

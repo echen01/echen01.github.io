@@ -5,11 +5,12 @@ title: Coursework
 # Coursework
 Here is a list of some course I've taken and some notes. 
 
-### In Progress
-- MATH 4330: Honors Linear Algebra
-- MATH 6520: Differentiable Manifolds
-- MATH 4220: Differential Equations and Dynamical Systems
+### Junior Year
+- CS 6630: Realistic Image Synthesis
+- CS 5643: Physicaly Based Animation for Computer Graphics
 - CS 4410: Operating Systems
+- MATH 4500: Matrix Groups
+- MATH 4180: Complex Analysis
 
 ### Sophomore Year
 
@@ -30,8 +31,7 @@ Here is a list of some course I've taken and some notes.
 - [MATH 2240: Theoretical Linear Algebra and Calculus II](https://echen01.notion.site/MATH-2240-Theoretical-Linear-Algebra-and-Calculus-c90d755cce1a426b82d724f2afa28dab)
 
 ### TA Experience
-- CS 4220: Numerical Analysis - Linear and Nonlinear Problems (SP22)
+- CS 4620: Computer Graphics (FA22)
+- CS 4220: Numerical Analysis - Lineaar and Nonlinear Problems (SP22, SP23)
 - CS 3220: Computational Mathematics for Computer Science (FA21)
 - CS 2110: Object Oriented Programming and Data Structures (SP21)
-
-
