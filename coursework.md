@@ -10,7 +10,6 @@ Here is a list of some course I've taken and some notes.
 - CS 5643: Physicaly Based Animation for Computer Graphics
 - CS 4410: Operating Systems
 - MATH 4500: Matrix Groups
-- MATH 4180: Complex Analysis
 
 ### Sophomore Year
 

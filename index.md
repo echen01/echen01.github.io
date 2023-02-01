@@ -53,7 +53,7 @@ unexpected roles in data.
 style="float: left; padding: 0px 10px 0px 0px" width=200px>
 #### What's in a Decade? Transforming Faces Through Time
 **Eric M. Chen**, Jin Sun, Apoorv Khandelwal, Dani Lischinski, Noah Snavely, Hadar Averbuch-Elor\
- arXiv 2022\
+ Eurographics 2023\
 [Website](https://facesthroughtime.github.io)
 [Paper](https://arxiv.org/abs/2210.06642)
 
