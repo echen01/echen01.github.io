@@ -23,11 +23,10 @@ I'm interested in many areas of computer vision, many of which deal
 with content creation. 
 
 #### Light Fields
-- Light fields are a classic scene representation for image based
-  rendering. While light fields have seemingly fallen by the wayside
-  as radiance fields have gained popularity, I think the fact that they allow for real-time view synthesis
-  is still useful. 
-- I am actively investigating how light fields can be used for content generation.
+- Although light fields have a long history, I am curious about
+  finding new applications for them. Because light
+  fields are fast to render, and are conceptually simple, I think they
+  have a lot of value. 
   
 #### Transforming Faces Through Time
 - Have you ever imagined how Charlie Chaplin would have looked like
@@ -49,7 +48,17 @@ unexpected roles in data.
 ---
 
 # Publications and Preprints
-<img src="/assets/ftt.png" alt="Faces Transformed Across Deacdes"
+<img src="/assets/raycond.png" alt="Faces Mapped to Different Viewpoints"
+style="float: left; padding: 0px 10px 0px 0px" width=200px>
+#### Ray Conditioning: Trading Photo-consistency for Photo-realism in Multi-view Image Generation
+**Eric M. Chen**, Sidhanth Holalkere, Ruyu Yan, Kai Zhang, Abe Davis\
+ Arxiv 2023\
+[Website](https://ray-cond.github.io)
+[Paper](https://arxiv.org/abs/2304.13681)
+
+<br>
+
+<img src="/assets/ftt.png" alt="Faces Transformed Across Decades"
 style="float: left; padding: 0px 10px 0px 0px" width=200px>
 #### What's in a Decade? Transforming Faces Through Time
 **Eric M. Chen**, Jin Sun, Apoorv Khandelwal, Dani Lischinski, Noah Snavely, Hadar Averbuch-Elor\
