@@ -3,13 +3,14 @@ layout: page
 title: Coursework
 ---
 # Coursework
-Here is a list of some course I've taken and some notes. 
+Here is a list of some courses I've taken and some notes. 
 
 ### Junior Year
 - CS 6630: Realistic Image Synthesis
 - CS 5643: Physicaly Based Animation for Computer Graphics
 - CS 4410: Operating Systems
 - MATH 4500: Matrix Groups
+- PHYS 2213: Electricity and Magnetism
 
 ### Sophomore Year
 
@@ -30,7 +31,7 @@ Here is a list of some course I've taken and some notes.
 - [MATH 2240: Theoretical Linear Algebra and Calculus II](https://echen01.notion.site/MATH-2240-Theoretical-Linear-Algebra-and-Calculus-c90d755cce1a426b82d724f2afa28dab)
 
 ### TA Experience
-- CS 4620: Computer Graphics (FA22)
+- CS 4620: Computer Graphics (FA22, FA23)
 - CS 4220: Numerical Analysis - Lineaar and Nonlinear Problems (SP22, SP23)
 - CS 3220: Computational Mathematics for Computer Science (FA21)
 - CS 2110: Object Oriented Programming and Data Structures (SP21)
