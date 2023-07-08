@@ -4,48 +4,46 @@ layout: page
 
 
 # Eric Ming Chen
-I'm Eric, a junior at Cornell University studying Computer
-Science! My interests include 3D computer vision, geometric deep
-learning and neural fields. I conduct research with [Hadar
-Averbuch-Elor](https://www.cs.cornell.edu/~hadarelor/), [Jin
-Sun](https://www.cs.cornell.edu/~jinsun/) and [Noah
-Snavely](https://www.cs.cornell.edu/~snavely/) at Cornell Tech; [Abe
-Davis](http://abedavis.com) at Cornell; and
-with [CUAI](https://cuai.github.io/).
+I'm Eric, an undergrad at Cornell University studying Computer
+Science! I am interested in 3D computer vision, geometric deep
+learning and neural fields. I am advised by [Abe
+Davis](http://abedavis.com) and [Noah
+Snavely](https://www.cs.cornell.edu/~snavely/). Last year I was co-president of  [Cornell
+University Artificial Intelligence (CUAI)](https://cuai.github.io/).
 
 **Email:** emc348[at]cornell.edu &nbsp;&nbsp; **Github:** [echen01](https://github.com/echen01)
 
 ---
 
-# Research
-## Computer Vision
-I'm interested in many areas of computer vision, many of which deal
-with content creation. 
+<!-- # Research -->
+<!-- ## Computer Vision -->
+<!-- I'm interested in many areas of computer vision, many of which deal -->
+<!-- with content creation.  -->
 
-#### Light Fields
-- Although light fields have a long history, I am curious about
-  finding new applications for them. Because light
-  fields are fast to render, and are conceptually simple, I think they
-  have a lot of value. 
+<!-- #### Light Fields -->
+<!-- - Although light fields have a long history, I am curious about -->
+<!--   finding new applications for them. Because light -->
+<!--   fields are fast to render, and are conceptually simple, I think they -->
+<!--   have a lot of value.  -->
   
-#### Transforming Faces Through Time
-- Have you ever imagined how Charlie Chaplin would have looked like
-  today, or how a celebrity would have looked in the 1920s? We take a
-  data driven approach to picture how a person would look in another decade's
-  style. 
-- We introduced a new image dataset consisting of over 25k historical people taken from
-  the Wikimedia Commons. 
+<!-- #### Transforming Faces Through Time -->
+<!-- - Have you ever imagined how Charlie Chaplin would have looked like -->
+<!--   today, or how a celebrity would have looked in the 1920s? We take a -->
+<!--   data driven approach to picture how a person would look in another decade's -->
+<!--   style.  -->
+<!-- - We introduced a new image dataset consisting of over 25k historical people taken from -->
+<!--   the Wikimedia Commons.  -->
 
-## Geometric Machine Learning
-I am also interested in discovering where geometry and symmetry play
-unexpected roles in data. 
-#### Riemannian Residual Neural Networks
-- We introduce a simple and general way to design residual neural
-  networks on smooth manifolds. 
--  We apply our model to show improved performance on hyperbolic
-    graph embedding, and covariance matrix classification. 
+<!-- ## Geometric Machine Learning -->
+<!-- I am also interested in discovering where geometry and symmetry play -->
+<!-- unexpected roles in data.  -->
+<!-- #### Riemannian Residual Neural Networks -->
+<!-- - We introduce a simple and general way to design residual neural -->
+<!--   networks on smooth manifolds.  -->
+<!-- -  We apply our model to show improved performance on hyperbolic -->
+<!--     graph embedding, and covariance matrix classification.  -->
   
----
+<!-- --- -->
 
 # Publications and Preprints
 <img src="/assets/raycond.png" alt="Faces Mapped to Different Viewpoints"
@@ -103,22 +101,36 @@ ICML 2022 Workshop on Topology, Algebra, and Geometry in ML\
 #### The elegant geometry behind Rwanda’s COVID-19 pooled testing strategy 
 **Eric M. Chen**, Medha Bulumulla, Megan Rochlin\
 Cornell Data Journal, Published Dec. 18, 2020 \
-[Article](https://cornelldatajourn.al/articles/elegant-geometry)
+[Article](assets/covid.pdf)
 
 
 ---
 
 
 # Projects
-<img src="/assets/eevee_4096spp.jpg" alt="Eevee Render" style="float:
-left; padding: 0px 10px 0px 0px" height=225px>
-#### Cornell Rendering Competition Submission
+<img src="/assets/eevee_4096spp.jpg" alt="Eevee Render" style="float:left; padding: 0px 10px 0px 0px" height=225px>
+#### Cornell Rendering Competition Path Tracer
 <!-- ![Eevee Render](/assets/eevee_4096spp.jpg) -->
 I was the runner up to the [Cornell CS
 6630](http://www.cs.cornell.edu/courses/cs6630/2022fa/) rendering
 competition. I won a copy of Fundamentals of Computer Graphics signed
 by Steve Marschner!\
-[Slides](https://docs.google.com/presentation/d/1sD9ssQDia5MyNVh9C2T2vm0nJKu6AfuB9uah9HGy74Y/edit?usp=sharing)\
+[Slides](assets/eevee_slides.pdf) [Report](assets/eevee_report.pdf)
+
+<br>
+<br>
+<br>
+
+<video style="float:left; padding: 00px 100px 0px 65px" height=250px
+autoplay muted>
+<source src="/assets/psi.mp4" alt="Smoke Animation" type="video/mp4">
+</video>
+#### Physically Based Smoke Animation
+Implemented [Target-Driven Smoke
+Animation](https://pages.cs.huji.ac.il/danix-lab/cglab/projects/tdsmoke/)
+by Fattal and Lischinski. Investigated how to use [divergence-free
+neural networks](/facebookresearch/neural-conservation-law) to model smoke animation as an optimal transport problem.\
+[Slides](assets/smoke_slides.pdf)
 <br>
 <br>
 <br>
@@ -128,7 +140,6 @@ by Steve Marschner!\
 
 <!-- ## Coursework -- In Progress -->
 <!-- - KOREA 1102: Elementary Korean II -->
-<!-- - PHYS 2217: Honors Electricity and Magnetism -->
 <!-- - CS 4820: Introduction to Algorithms -->
 <!-- - CS 5625: Interactive Computer Graphics -->
 <!-- - ORIE 6334: Combinatorial Optimization -->
