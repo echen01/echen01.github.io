@@ -129,7 +129,7 @@ autoplay muted>
 Implemented [Target-Driven Smoke
 Animation](https://pages.cs.huji.ac.il/danix-lab/cglab/projects/tdsmoke/)
 by Fattal and Lischinski. Investigated how to use [divergence-free
-neural networks](/facebookresearch/neural-conservation-law) to model smoke animation as an optimal transport problem.\
+neural fields](https://github.com/facebookresearch/neural-conservation-law) to model smoke animation as an optimal transport problem.\
 [Slides](assets/smoke_slides.pdf)
 <br>
 <br>
