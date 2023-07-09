@@ -111,7 +111,7 @@ Cornell Data Journal, Published Dec. 18, 2020 \
 <img src="/assets/eevee_4096spp.jpg" alt="Eevee Render" style="float:left; padding: 0px 10px 0px 0px" height=225px>
 #### Cornell Rendering Competition Path Tracer
 <!-- ![Eevee Render](/assets/eevee_4096spp.jpg) -->
-I was the runner up to the [Cornell CS
+I created a path tracer to render fur for the [Cornell CS
 6630](http://www.cs.cornell.edu/courses/cs6630/2022fa/) rendering
 competition. I won a copy of Fundamentals of Computer Graphics signed
 by Steve Marschner!\
