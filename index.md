@@ -122,7 +122,7 @@ by Steve Marschner!\
 <br>
 
 <video style="float:left; padding: 00px 100px 0px 65px" height=250px
-autoplay muted>
+autoplay muted loop>
 <source src="/assets/psi.mp4" alt="Smoke Animation" type="video/mp4">
 </video>
 #### Physically Based Smoke Animation
