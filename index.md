@@ -50,7 +50,7 @@ University Artificial Intelligence (CUAI)](https://cuai.github.io/).
 style="float: left; padding: 0px 10px 0px 0px" width=200px>
 #### Ray Conditioning: Trading Photo-consistency for Photo-realism in Multi-view Image Generation
 **Eric M. Chen**, Sidhanth Holalkere, Ruyu Yan, Kai Zhang, Abe Davis\
- Arxiv 2023\
+ ICCV 2023\
 [Website](https://ray-cond.github.io)
 [Paper](https://arxiv.org/abs/2304.13681)
 
