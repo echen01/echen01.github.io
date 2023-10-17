@@ -54,7 +54,7 @@ Isay Katsman\*, **Eric M. Chen\***, Sidhanth Holalkere\*, Anna Asch\*, Aaron
 Lou, Ser-Nam Lim, Christopher De Sa\
 NeurIPS 2023\
 Also in the ICML 2022 TAGML Workshop \
-[Paper](https://drive.google.com/file/d/1yZ_uDbXNn4OfINR8LSe1WA0o5-ae4jq4/view)
+[Paper](https://arxiv.org/abs/2310.10013)
 [Poster](https://drive.google.com/file/d/1uWpzZ2SemGpIAClOSaVVQI-L4PZZ0xnU/view)
 
  \* Equal Contribution
