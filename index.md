@@ -50,12 +50,11 @@ I am applying to PhD programs in computer vision and graphics this fall!
 # Publications and Preprints
 <img src="/assets/rresnet.png" alt="RResNet" style="float: left;padding: 0px 10px 0px 0px" width=200px>
 #### Riemannian Residual Neural Networks
-Isay Katsman\*, **Eric M. Chen\***, Sidhanth Holalkere\*, Anna Asch\*, Aaron
+Isay Katsman\*, **Eric M. Chen\***, Sidhanth Holalkere\*, Anna Asch, Aaron
 Lou, Ser-Nam Lim, Christopher De Sa\
 NeurIPS 2023\
 Also in the ICML 2022 TAGML Workshop \
 [Paper](https://arxiv.org/abs/2310.10013)
-[Poster](https://drive.google.com/file/d/1uWpzZ2SemGpIAClOSaVVQI-L4PZZ0xnU/view)
 
  \* Equal Contribution
  
