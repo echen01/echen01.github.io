@@ -11,7 +11,6 @@ Davis](http://abedavis.com) and [Noah
 Snavely](https://www.cs.cornell.edu/~snavely/). Last year I was co-president of  [Cornell
 University Artificial Intelligence (CUAI)](https://cuai.github.io/).
 
-I am applying to PhD programs in computer vision and graphics this fall!
 
 **Email:** emc348[at]cornell.edu &nbsp;&nbsp; **Github:** [echen01](https://github.com/echen01) &nbsp;&nbsp; **CV:** [CV](/assets/Eric_Chen_CV.pdf)
 
