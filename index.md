@@ -4,15 +4,14 @@ layout: page
 
 
 # Eric Ming Chen
-I'm Eric, an undergrad at Cornell University studying Computer
+I'm Eric, a PhD student at MIT studying Computer
 Science! I am interested in 3D computer vision, geometric deep
-learning and neural fields. I am advised by [Abe
-Davis](http://abedavis.com) and [Noah
-Snavely](https://www.cs.cornell.edu/~snavely/). Last year I was co-president of  [Cornell
-University Artificial Intelligence (CUAI)](https://cuai.github.io/).
+learning and neural fields. I am advised by [Vincent Sitzmann](https://www.vincentsitzmann.com/). My reserach is 
+supported by the NSF GRFP. Before MIT, I was an undergrad at Cornell.
 
 
-**Email:** emc348[at]cornell.edu &nbsp;&nbsp; **Github:** [echen01](https://github.com/echen01) &nbsp;&nbsp; **CV:** [CV](/assets/Eric_Chen_CV.pdf)
+**Email:** emc348[at]cornell.edu &nbsp;&nbsp; **Github:** [echen01](https://github.com/echen01) 
+<!--- &nbsp;&nbsp; **CV:** [CV](/assets/Eric_Chen_CV.pdf) --->
 
 ---
 
@@ -47,6 +46,16 @@ University Artificial Intelligence (CUAI)](https://cuai.github.io/).
 <!-- --- -->
 
 # Publications and Preprints
+<img src="/assets/raycond.png" alt="Faces Mapped to Different Viewpoints"
+style="float: left; padding: 0px 10px 0px 0px" width=200px>
+#### Ray Conditioning: Trading Photo-consistency for Photo-realism in Multi-view Image Generation
+**Eric M. Chen**, Sidhanth Holalkere, Ruyu Yan, Kai Zhang, Abe Davis\
+ ICCV 2023\
+[Website](https://ray-cond.github.io)
+[Paper](https://arxiv.org/abs/2304.13681)
+
+<br>
+
 <img src="/assets/rresnet.png" alt="RResNet" style="float: left;padding: 0px 10px 0px 0px" width=200px>
 #### Riemannian Residual Neural Networks
 Isay Katsman\*, **Eric M. Chen\***, Sidhanth Holalkere\*, Anna Asch, Aaron
@@ -57,16 +66,6 @@ Also in the ICML 2022 TAGML Workshop \
 
  \* Equal Contribution
  
-<br>
-
-<img src="/assets/raycond.png" alt="Faces Mapped to Different Viewpoints"
-style="float: left; padding: 0px 10px 0px 0px" width=200px>
-#### Ray Conditioning: Trading Photo-consistency for Photo-realism in Multi-view Image Generation
-**Eric M. Chen**, Sidhanth Holalkere, Ruyu Yan, Kai Zhang, Abe Davis\
- ICCV 2023\
-[Website](https://ray-cond.github.io)
-[Paper](https://arxiv.org/abs/2304.13681)
-
 <br>
 
 <img src="/assets/ftt.png" alt="Faces Transformed Across Decades"
