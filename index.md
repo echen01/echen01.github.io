@@ -6,7 +6,7 @@ layout: page
 # Eric Ming Chen
 I'm Eric, a PhD student at MIT studying Computer
 Science! I am interested in 3D computer vision, geometric deep
-learning and neural fields. I am advised by [Vincent Sitzmann](https://www.vincentsitzmann.com/). My reserach is 
+learning and neural fields. I am advised by [Vincent Sitzmann](https://www.vincentsitzmann.com/). My research is 
 supported by the NSF GRFP. Before MIT, I was an undergrad at Cornell.
 
 
