@@ -10,7 +10,7 @@ learning and neural fields. I am advised by [Vincent Sitzmann](https://www.vince
 supported by the NSF GRFP. Before MIT, I was an undergrad at Cornell.
 
 
-**Email:** echen[at]csail.mit.edu &nbsp;&nbsp; **Github:** [echen01](https://github.com/echen01) 
+**Email:** emc348[at]cornell.edu &nbsp;&nbsp; **Github:** [echen01](https://github.com/echen01) 
 <!--- &nbsp;&nbsp; **CV:** [CV](/assets/Eric_Chen_CV.pdf) --->
 
 ---
