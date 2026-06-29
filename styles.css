@@ -1,0 +1,639 @@
+* {
+    box-sizing: border-box;
+}
+
+::selection {
+    background: #F8E3E4;
+}
+
+::-moz-selection {
+    background: #F8E3E4;
+}
+
+hr {
+    color: #17183B;
+    background-color: #17183B;
+}
+
+a {
+    color: #666;
+    text-decoration: underline;
+    /* font-weight: 300; */
+}
+
+a:hover {
+    color: #333;
+}
+
+b a,
+strong a,
+a b,
+a strong {
+    font-weight: 700;
+    /* override the font-weight 400 for bold links */
+}
+
+html {
+    overflow-x: hidden;
+    overflow-y: scroll;
+}
+
+body {
+    width: 100%;
+    margin: 0px 0;
+    padding: 0;
+    background: #fff;
+    font-family: "Helvetica", Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 1.4;
+    color: #000;
+}
+
+/* Set the header fonts */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: "Helvetica", Helvetica, Arial, sans-serif;
+    font-weight: 500;
+    color: #393939;
+}
+
+.two-column-layout {
+    display: flex;
+    justify-content: flex-start;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.bio {
+    width: 15rem;
+    max-width: 200px;
+    margin-left: 2em;
+    max-width: none;
+    /* override the existing max-width */
+}
+
+.posts {
+    /* Assuming .posts is the class wrapping your posts */
+    max-width: 600px;
+    width: 65%;
+    /* less than 70% to account for potential margins or paddings */
+    margin-top: 1rem;
+    /* less than 70% to account for potential margins or paddings */
+    margin-left: 2em;
+    margin-right: 5em;
+}
+
+.emph {
+    color: #254441;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 25px;
+}
+
+@media screen and (min-width: 600px) {
+    body {
+        margin: 20px 0 25px;
+        padding-right: 15px;
+    }
+
+    .container {
+        margin: 0 50px;
+    }
+}
+
+@media screen and (max-width: 800px) {
+    .two-column-layout {
+        flex-direction: column;
+    }
+
+    .bio,
+    .posts {
+        width: 100%;
+        padding-right: 5em;
+    }
+}
+
+.bio {
+    max-width: 500px;
+}
+
+.bio__header {
+    margin-bottom: 20px;
+    font-weight: 700;
+}
+
+.bio__header a {
+    text-decoration: none;
+}
+
+.bio__header a:hover {
+    text-decoration: none;
+}
+
+.bio__tabs {
+    margin-bottom: 20px;
+}
+
+.bio__tabs a:hover {
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.bio__social {
+    margin: 0;
+    margin-top: 50px;
+    padding: 0;
+    list-style: none;
+}
+
+.rows {
+    position: relative;
+    width: 100%;
+    margin: 0;
+    margin-top: 50px;
+    padding: 0;
+    list-style: none;
+}
+
+.row__img {
+    display: none;
+    position: absolute;
+    max-width: 500px;
+    max-height: 500px;
+    top: -200px;
+    left: 186px;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 500ms;
+}
+
+.row__cols,
+.row__post {
+    display: block;
+    margin-bottom: 10px;
+}
+
+.row__cols {
+    font-weight: 700;
+    overflow: hidden;
+}
+
+.row__post {
+    width: 100%;
+    overflow: hidden;
+}
+
+.row__title,
+.post__title,
+.row__date,
+.post__date,
+.row__cat,
+.post__cat {
+    float: left;
+}
+
+.row__title,
+.post__title {
+    width: 100%;
+}
+
+.row__date,
+.post__date,
+.row__cat,
+.post__cat {
+    width: auto;
+}
+
+.row__cat,
+.post__cat {
+    position: relative;
+    margin-left: 10px;
+}
+
+.row__cat:before,
+.post__cat:before {
+    position: absolute;
+    content: '|';
+    left: -9px;
+}
+
+.row__body {
+    margin: 20px 0;
+}
+
+.row__active {
+    text-decoration: line-through;
+}
+
+@media screen and (min-width: 800px) {
+    .row__post:hover * {
+        text-decoration: underline;
+        cursor: pointer;
+    }
+
+    .row__post:hover .row__active {
+        text-decoration: line-through;
+    }
+
+    .row__post:hover .row__img {
+        display: block;
+        opacity: 0.5;
+    }
+
+    .row__post:nth-child(2n) .row__img {
+        top: 67px;
+        left: 466px;
+    }
+
+    .row__post:nth-child(3n) .row__img {
+        top: 26px;
+        left: 408px;
+    }
+
+    .row__post:nth-child(4n) .row__img {
+        top: 156px;
+        left: 499px;
+    }
+
+    .row__post:nth-child(5n) .row__img {
+        top: 17px;
+        left: 158px;
+    }
+}
+
+@media screen and (min-width: 600px) {
+
+    .row__cols,
+    .row__post {
+        margin: 0;
+    }
+
+    .row__title,
+    .post__title {
+        width: 50%;
+    }
+
+    .row__date,
+    .post__date,
+    .row__cat,
+    .post__cat {
+        width: 25%;
+    }
+
+    .row__cat,
+    .post__cat {
+        margin: 0;
+    }
+
+    .row__cat:before,
+    .post__cat:before {
+        content: '';
+    }
+}
+
+.post__meta {
+    margin: 30px 0 20px;
+    border-bottom: 1px solid #17183B;
+    overflow: hidden;
+    font-weight: 700;
+}
+
+.post__paginate {
+    overflow: hidden;
+}
+
+.post__paginate-left,
+.post__paginate-right {
+    position: relative;
+    display: block;
+    width: 50%;
+}
+
+.post__paginate-left {
+    padding-left: 13px;
+    float: left;
+}
+
+.post__paginate-left:before {
+    position: absolute;
+    top: 0;
+    left: 0;
+    content: "\21FD";
+}
+
+.post__paginate-right {
+    padding-right: 13px;
+    text-align: right;
+    float: right;
+}
+
+.post__paginate-right:after {
+    position: absolute;
+    top: 0;
+    right: 0;
+    content: "\21FE";
+}
+
+.post__body {
+    padding-bottom: 20px;
+    border-bottom: 1px solid #17183B;
+}
+
+.post__body pre {
+    background: #eee;
+    padding: 10px 20px;
+}
+
+.post__body code {
+    background: #eee;
+    font-size: 12px;
+}
+
+.post__body img {
+    max-width: 100%;
+}
+
+@media screen and (min-width: 800px) {
+    .post {
+        min-width: 500px;
+        width: 50%;
+    }
+}
+
+/* Three Column Layout */
+.three-column-layout {
+    display: grid;
+    grid-template-columns: 1.2fr 3fr 0.9fr;
+    gap: 2rem;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0rem 0.5rem 2rem 2rem;
+    align-items: start;
+}
+
+.bio-column {
+    padding-right: 1rem;
+}
+
+.bio-column h1 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.bio-column img {
+    max-width: 100%;
+    height: auto;
+    margin-bottom: 1rem;
+}
+
+.bio-toggle {
+    display: inline-block;
+    border: 1px solid #ddd;
+    color: #666;
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    margin-top: 1rem;
+    font-family: inherit;
+    text-decoration: none;
+    transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.bio-toggle:hover {
+    border-color: #333;
+    color: #333;
+    text-decoration: none;
+}
+
+/* Apply container styling to bio toggle at all screen sizes where bio text is constrained */
+@media screen and (max-width: 1200px) {
+    .bio-column .bio-toggle {
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
+
+
+.featured-column {
+    position: relative;
+}
+
+.featured-content {
+    padding: 0 1.5rem;
+    border-left: 1px solid #ddd;
+    border-right: 1px solid #ddd;
+}
+
+.featured-column h2 {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    font-size: 1rem;
+}
+
+.links-column {
+    padding-left: 0rem;
+}
+
+.links-column h2,
+.links-column h3 {
+    margin-bottom: 1rem;
+}
+
+.links-column ul {
+    list-style: disc;
+    padding-left: 1.2rem;
+}
+
+.links-column li {
+    /* margin-bottom: 0.25rem; */
+    /* line-height: 1.4; */
+}
+
+.main-content {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+}
+
+@media screen and (max-width: 1000px) {
+    .main-content {
+        max-width: 600px;
+        padding: 0 2rem;
+    }
+}
+
+
+.main-content ul {
+    list-style: disc;
+    padding-left: 1.2rem;
+}
+
+.main-content li {
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+}
+
+/* Two-column sections for bottom content */
+.two-column-section {
+    margin: 3rem 0;
+}
+
+.research-writing-grid,
+.media-talks-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+}
+
+@media screen and (max-width: 768px) {
+
+    .research-writing-grid,
+    .media-talks-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+}
+
+/* Featured Writing Cards - Updated for 3-column */
+.featured-writing {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.featured-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.featured-card-link:hover {
+    text-decoration: none;
+}
+
+.featured-card {
+    border: 1px solid #ddd;
+    background: #fff;
+    transition: border-color 0.15s ease;
+    height: 100%;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+}
+
+.featured-card-link:hover .featured-card {
+    border-color: #333;
+}
+
+.card-image {
+    width: 100%;
+    max-height: 125px;
+    overflow: hidden;
+    background: #ffffff;
+    flex-shrink: 0;
+}
+
+.card-image img {
+    width: 100%;
+    height: auto;
+    max-height: 125px;
+    object-fit: cover;
+    object-position: top;
+}
+
+.card-content {
+    padding: 1rem;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.card-content h3 {
+    margin: 0 0 0.25rem 0;
+    font-size: 0.875rem;
+    line-height: 1.3;
+    font-weight: 400;
+}
+
+.card-publication {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: #666;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.card-preview {
+    margin: 0;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: #666;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    font-weight: 300;
+    margin-top: auto;
+}
+
+/* Responsive Design for 3-column layout */
+@media screen and (max-width: 1000px) {
+    .three-column-layout {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        padding: 1rem;
+    }
+
+    .bio-column {
+        order: 1;
+        padding: 0 2rem;
+    }
+
+    .bio-column h1 {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .bio-column img {
+        display: block;
+        margin: 0 auto 2rem auto;
+    }
+
+    .bio-column p {
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+        margin-bottom: 1rem;
+    }
+
+    .featured-column {
+        order: 2;
+    }
+
+    .featured-content {
+        border: none;
+        padding: 0;
+    }
+
+    .links-column {
+        order: 3;
+        padding: 0 2rem;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .featured-writing {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1rem;
+    }
+}
