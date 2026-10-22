@@ -56,6 +56,47 @@ The deployed `difftlm.wasm` is built from `src/lib.rs`. The tests cover:
 - At least 80% spectral-loss reduction for each preset over 240 actual steps.
 - Finite, bounded, click-faded audio and rejected invalid model inputs.
 
+### Direct comparison with upstream JAX autodiff
+
+The optional JAX suite calls the **unmodified upstream
+`TransmissionLineSimulator.step_frame`**, rather than a second transcription of
+the equations. It checks the exact source Git blob hashes at the commit above
+before importing. An impulse input and zero turbulence noise recover the voiced
+transfer function through `rfft(step_frame(...))`. `jax.value_and_grad`
+differentiates the same mean squared natural-log magnitude loss with respect to
+all 32 log areas. The identical target spectrum is passed to the shipped WASM.
+JAX runs on CPU with float64 enabled to match the WASM's `f64` arithmetic.
+
+There are 26 deterministic cases: vowel targets, eight seeded smooth shapes,
+uniform areas at and near the bounds, and localized/broad constrictions. Tract
+lengths span 12–22 cm; FFT sizes are 512, 1024, and 2048 at 16 kHz. The suite
+compares 15,078 complex response values and 832 gradient coordinates. DC and
+Nyquist are excluded because the upstream `irfft` projects those two bins onto
+the real axis. This does not test turbulence, overlap-add synthesis, neural
+fields, derivatives with respect to length or pitch, or default float32 behavior.
+
+From this simulator directory:
+
+```sh
+python3.12 -m venv /tmp/difftlm-jax-validation
+/tmp/difftlm-jax-validation/bin/python -m pip install -r tests/requirements-jax.txt
+DIFFTLM_JAX_PYTHON=/tmp/difftlm-jax-validation/bin/python node tests/check-jax.mjs --report tests/jax-validation.json
+```
+
+The first run downloads only three pinned upstream source files into a temporary
+directory. For an offline run, append `--upstream /path/to/diffTLM`; those source
+files must match the pinned hashes. The report records dependency versions,
+source identity, the tested WASM SHA-256, per-case errors, and pass/fail results.
+Gradient scaled error is `abs(wasm - jax) / (1 + abs(jax))`; the suite also checks
+the relative L2 error of each full gradient vector. This test is separate from
+`build.sh` so routine browser builds do not install JAX.
+
+The saved `tests/jax-validation.json` reports **26/26 cases passed** with JAX
+0.12.0.1. Maximum complex-response relative error is `3.73e-13`, maximum
+coordinatewise scaled gradient error is `1.46e-13`, and maximum gradient-vector
+relative L2 error is `5.78e-14`. No simulator changes were needed. These values
+apply to the exact WASM and case specification identified by hashes in the report.
+
 ## Browser API
 
 ```js
