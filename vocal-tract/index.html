@@ -66,9 +66,22 @@
           </div>
           <div class="sound-controls">
             <label>Tract length <output id="length-value" for="tract-length">17.5 cm</output><input id="tract-length" type="range" min="12" max="22" value="17.5" step="0.5"></label>
-            <label>Pitch <output id="pitch-value" for="pitch">120 Hz</output><input id="pitch" type="range" min="80" max="250" value="120" step="5"></label>
+            <label>Source pitch <output id="pitch-value" for="pitch">120 Hz</output><input id="pitch" type="range" min="65" max="500" value="120" step="1"></label>
           </div>
           <div class="listen-actions"><button id="listen-current" class="button" disabled><span aria-hidden="true">▷</span> Listen to current</button><button id="listen-target" class="button button-quiet" disabled><span aria-hidden="true">▷</span> Listen to target</button></div>
+          <details class="pitch-estimator" id="pitch-estimator">
+            <summary>Estimate source pitch from a recording <span>SwiftF0 · runs locally</span></summary>
+            <p class="pitch-intro">Pitch comes from vocal-fold vibration; the tract shapes its resonances. Estimate the fundamental frequency (<i>F</i>₀) of a single voice, then hear a vowel at the recording’s median voiced pitch.</p>
+            <div class="pitch-actions"><button id="pitch-example" class="button" type="button">Analyze example speech</button><label class="pitch-file-label" for="pitch-file">Or choose audio <input id="pitch-file" type="file" accept="audio/*,.wav,.mp3,.m4a,.ogg,.flac,.webm" aria-describedby="pitch-file-help"></label><button id="pitch-cancel" class="button button-quiet" type="button" hidden>Cancel</button></div>
+            <p class="pitch-help" id="pitch-file-help">Up to 30 seconds / 20 MB. Audio stays on your device. The model loads on first use.</p>
+            <p id="pitch-status" class="pitch-status" role="status" aria-live="polite">Use a clear recording of one speaking or singing voice.</p>
+            <div id="pitch-result" hidden>
+              <div class="pitch-metrics"><div><span>Median voiced pitch</span><output id="estimated-pitch">—</output></div><div><span>Voiced frames</span><output id="voiced-fraction">—</output></div></div>
+              <svg id="pitch-plot" viewBox="0 0 760 190" role="img" aria-labelledby="pitch-title pitch-description"><title id="pitch-title">Estimated fundamental frequency over time</title><desc id="pitch-description">Only confident voiced frames are shown. Gaps indicate silence or unvoiced frames.</desc></svg>
+              <audio id="pitch-preview" controls preload="none" aria-label="Recording used for pitch estimation"></audio>
+              <p class="pitch-help">SwiftF0 v0.3.0 analyzes 16 kHz mono audio every 16 ms. Shown frames have confidence ≥ 0.5 and pass a silence gate. The median sets a constant source pitch; the spectral fitting experiment still uses the selected vowel target. <a href="https://github.com/lars76/swift-f0" target="_blank" rel="noopener">About SwiftF0 ↗</a></p>
+            </div>
+          </details>
           <div class="plot-heading spectrum-heading"><h3>Acoustic response</h3><div class="plot-legend"><span><i class="legend-line current"></i>Current</span><span><i class="legend-line target"></i>Target</span></div></div>
           <svg id="spectrum-plot" viewBox="0 0 760 235" role="img" aria-label="Acoustic transfer function from 80 to 5000 hertz, comparing the current tube with the target"></svg>
           <div class="fit-panel">

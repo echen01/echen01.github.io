@@ -1,4 +1,5 @@
 import {createSimulator, PRESETS, initialAreas, FREQUENCIES} from './simulator/index.js';
+import {setupPitchEstimator} from './pitch-ui.js';
 
 const $ = id => document.getElementById(id);
 const NS = 'http://www.w3.org/2000/svg';
@@ -23,6 +24,7 @@ function syncControls() {
   $('area-value').textContent = `${state.areas[state.selected].toFixed(2)} cm²`;
   $('tract-length').value = state.length;
   $('length-value').textContent = `${state.length} cm`;
+  $('pitch').value = state.pitch;
   $('pitch-value').textContent = `${state.pitch} Hz`;
 }
 function drawTube() {
@@ -192,7 +194,10 @@ $('tract-length').addEventListener('input', event => {
   if (state.sim) targetDb = state.sim.response(state.target.areas, state.length).magnitudeDb;
   setStatus('Tract length changes both the current and target resonances.'); responseUpdated();
 });
-$('pitch').addEventListener('input', event => { stopAudio(); state.pitch = +event.target.value; syncControls(); });
+const pitchEstimator = setupPitchEstimator({
+  onPitch: pitch => { stopAudio(); state.pitch = pitch; syncControls(); },
+});
+$('pitch').addEventListener('input', event => { pitchEstimator.cancel('Analysis canceled because the source pitch was adjusted.'); stopAudio(); state.pitch = +event.target.value; syncControls(); });
 $('show-target').addEventListener('change', drawTube);
 $('listen-current').addEventListener('click', () => playSound('current'));
 $('listen-target').addEventListener('click', () => playSound('target'));
@@ -222,7 +227,7 @@ for (const media of document.querySelectorAll('audio, video')) media.addEventLis
   stopAudio();
   for (const other of document.querySelectorAll('audio, video')) if (other !== media) other.pause();
 });
-document.addEventListener('visibilitychange', () => { if (document.hidden) { stopAudio(); if (state.running) cancelFit('Fitting paused while this page is in the background.'); } });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { stopAudio(); pitchEstimator.cancel('Pitch analysis paused. Analyze the recording again to continue.'); if (state.running) cancelFit('Fitting paused while this page is in the background.'); } });
 $('copy-citation').addEventListener('click', async () => {
   try {
     await navigator.clipboard.writeText($('bibtex').textContent);
@@ -247,7 +252,7 @@ try {
   currentDb = state.sim.response(state.areas, state.length).magnitudeDb;
   $('engine-state').textContent = 'Rust / WASM · ready'; $('engine-state').classList.add('ready');
   $('lab').setAttribute('aria-busy', 'false');
-  for (const button of $('lab').querySelectorAll('button')) button.disabled = false;
+  for (const button of $('lab').querySelectorAll('.target-option, #listen-current, #listen-target, #fit, #reset')) button.disabled = false;
   render();
 } catch (error) {
   $('engine-state').textContent = 'Simulator unavailable'; $('lab').setAttribute('aria-busy', 'false');

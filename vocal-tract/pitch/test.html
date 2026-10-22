@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>SwiftF0 browser test fixture</title>
+<h1>SwiftF0 browser tests</h1>
+<p>Tests use the real model and local WASM runtime on ordinary static hosting.</p>
+<button id="run">Run pitch tests</button>
+<pre id="result" role="status">Ready. Model assets have not loaded yet.</pre>
+<script type="module">
+  import { runPitchTests } from './test-suite.js';
+  const button = document.querySelector('#run');
+  const output = document.querySelector('#result');
+  button.addEventListener('click', async () => {
+    button.disabled = true;
+    output.textContent = 'Running real-model tests…';
+    try {
+      output.textContent = JSON.stringify({ passed: true, ...await runPitchTests() }, null, 2);
+    } catch (error) {
+      output.textContent = `FAILED: ${error.message}`;
+    } finally {
+      button.disabled = false;
+    }
+  });
+</script>
+</html>
