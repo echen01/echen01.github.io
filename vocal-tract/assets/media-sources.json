@@ -1,0 +1,11 @@
+{
+  "speech-original.wav": "https://people.csail.mit.edu/echen/vocal_recon/media/on_november_8_1963_parent.wav",
+  "speech-reconstruction.mp4": "https://people.csail.mit.edu/echen/vocal_recon/media/on_november_8_1963.mp4",
+  "mri-original.wav": "https://people.csail.mit.edu/echen/vocal_recon/media/problem_tgt.wav",
+  "mri-reconstruction.mp4": "https://people.csail.mit.edu/echen/vocal_recon/media/the_problem_is_aggravated_by_the_necessity.mp4",
+  "mri-areas.mp4": "https://people.csail.mit.edu/echen/vocal_recon/media/the_problem_area.mp4",
+  "piano-original.wav": "https://people.csail.mit.edu/echen/vocal_recon/media/ode_gt.wav",
+  "piano-reconstruction.mp4": "https://people.csail.mit.edu/echen/vocal_recon/media/ode_to_joy_recon2.mp4",
+  "mri-reference.mp4": "https://people.csail.mit.edu/echen/vocal_recon/media/sub030_ny_gt.mp4",
+  "mri-prediction.mp4": "https://people.csail.mit.edu/echen/vocal_recon/media/sub030_ny_oursmp4.mp4"
+}
