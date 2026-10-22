@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Reconstructing the Vocal Tract · Eric Ming Chen, Jin Woo Lee &amp; Vincent Sitzmann</title>
-  <meta name="description" content="A differentiable acoustic simulator that connects vocal tract geometry to speech. Explore the physics, fit a vowel in your browser, and see speech and MRI reconstruction results from our NeurIPS 2026 paper.">
+  <meta name="description" content="Fit a whole speech recording in your browser and watch its inferred vocal tract areas change. Explore differentiable acoustic simulation and results from our NeurIPS 2026 paper.">
   <meta name="theme-color" content="#faf9f6">
   <link rel="canonical" href="https://echen01.github.io/vocal-tract/">
   <link rel="stylesheet" href="style.css">
@@ -50,8 +50,32 @@
 
     <section id="playground">
       <p class="section-number">02 / An experiment in your browser</p>
-      <h2>Change the shape. Hear the difference.</h2>
-      <p>Drag the tube profile to change its cross-sectional areas, then listen. Or choose a target and let gradient descent find a shape whose acoustic response matches it. Every optimization step is computed here in your browser.</p>
+      <h2>A sentence becomes a moving tract.</h2>
+      <p>Fit the entire example recording, then play it back or scrub through time to see how the inferred areas change. SwiftF0 tracks the pitch; gradient descent adjusts a sequence of tract shapes. All analysis and optimization happen in your browser.</p>
+
+      <div class="lab speech-lab" id="speech-lab">
+        <div class="lab-heading"><span class="lab-label">Whole-speech fitting</span><span class="engine-state" id="speech-engine">Ready to fit</span></div>
+        <div class="lab-body">
+          <p class="speech-caption" id="speech-caption">Example · “On November 8, 1963”</p>
+          <div class="speech-actions"><button id="speech-fit" class="button button-primary" type="button">Fit entire speech sample →</button><button id="speech-cancel" class="button button-quiet" type="button" hidden>Stop fitting</button><button id="speech-example" class="button button-quiet" type="button" hidden>Use example</button></div>
+          <label class="speech-file-label" for="speech-file">Or choose your own recording <input id="speech-file" type="file" accept="audio/*,.wav,.mp3,.m4a,.ogg,.flac,.webm" aria-describedby="speech-file-help"></label>
+          <p class="pitch-help" id="speech-file-help">One voice, up to 10 seconds / 20 MB. Your audio stays on this device.</p>
+          <div class="speech-progress"><progress id="speech-progress" value="0" max="32" aria-label="Speech fitting progress"></progress><p id="speech-status" role="status" aria-live="polite">Start fitting to reconstruct an area trajectory for the complete clip.</p></div>
+          <div class="speech-metrics"><div><span>Pass</span><output id="speech-step">0 / 32</output></div><div><span>Fit objective</span><output id="speech-loss">—</output></div><div><span>Elapsed</span><output id="speech-elapsed">0.0 s</output></div></div>
+          <div class="plot-heading"><h3>Area along the tract</h3><output class="speech-time" id="speech-time" aria-live="off">0.00 s</output></div>
+          <svg id="speech-shape" viewBox="0 0 760 200" role="img" aria-labelledby="speech-shape-title speech-shape-description"><title id="speech-shape-title">Vocal tract areas at the selected time</title><desc id="speech-shape-description">The horizontal axis runs from the glottis to the lips. Height shows cross-sectional area in square centimeters.</desc></svg>
+          <div class="speech-frame-info"><span id="speech-frame-label">No fitted frames yet</span><span id="speech-frame-pitch">Pitch —</span></div>
+          <div class="plot-heading speech-map-heading"><h3>Area over the whole recording</h3><span class="speech-map-key"><i></i> Small → large</span></div>
+          <canvas id="speech-map" width="760" height="240" role="img" aria-label="Heatmap of cross-sectional area over time. Glottis at the bottom, lips at the top. Darker teal means a larger area. Use the time slider to inspect a frame."></canvas>
+          <label class="speech-scrub-label" for="speech-scrub">Explore time <output id="speech-position" aria-live="off">0.00 / 0.00 s</output><input id="speech-scrub" type="range" min="0" max="1" step="0.001" value="0" disabled></label>
+          <p class="pitch-help" id="speech-map-help">Each column is a moment in the recording; each row is one of the 32 tract areas. Faded columns mark quiet frames. Click the map or drag the time slider.</p>
+          <div class="speech-audio-pair"><div><h3>Original · play to animate</h3><audio id="speech-original" controls preload="none" aria-label="Original recording with animated vocal tract areas" src="assets/speech-original.wav"></audio></div><div><h3>Browser reconstruction</h3><audio id="speech-reconstructed" controls preload="none" aria-label="Speech reconstructed from the fitted area trajectory" hidden></audio><p id="speech-audio-note" class="pitch-help">Available after fitting.</p></div></div>
+        </div>
+        <div class="lab-note"><strong>What is being fitted?</strong> A sequence of 32 areas along a fixed 17.5 cm tract is optimized against short-time spectral measurements, with smoothness across neighboring areas and frames. SwiftF0 supplies a fixed pitch contour. Voiced frames use a glottal source; unvoiced frames use a broadband approximation. Playback filters those sources through the moving tract and combines overlapping frames. This is a browser experiment, separate from the paper’s neural-field model and turbulence simulation. Quiet frames are constrained by their neighbors, and inferred areas are not a measurement of anatomy.</div>
+      </div>
+
+      <details class="vowel-experiment"><summary>Explore the single-vowel experiment</summary>
+      <p>For a simpler view of the inverse problem, reshape one tube or fit it to a synthetic vowel target.</p>
 
       <div class="lab" id="lab" aria-busy="true">
         <div class="lab-heading"><span class="lab-label">Vocal tract laboratory</span><span class="engine-state" id="engine-state" role="status">Loading simulator…</span></div>
@@ -94,6 +118,7 @@
         <div class="lab-note"><strong>What this experiment shows.</strong> A stationary, voiced subset of the current transmission-line model, running in Rust/WebAssembly: 32 area values, with the final value defining the lip boundary. Fitting uses reverse-mode derivatives of a log-magnitude spectral loss and Adam updates to the log areas. Targets are synthesized from resampled Fant vowel area functions. This demo omits turbulence, time-varying speech, and the neural-field parameterization used in the paper.</div>
       </div>
       <aside class="observation"><strong>Try this:</strong> reveal the target shape after fitting. A close match in sound does not guarantee a unique match in geometry. This ambiguity is part of the inverse problem, not something a small reconstruction error removes.</aside>
+      </details>
     </section>
 
     <section id="parameterization">
