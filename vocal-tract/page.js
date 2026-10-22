@@ -1,6 +1,5 @@
 import {createSimulator, PRESETS, initialAreas, FREQUENCIES} from './simulator/index.js';
 import {setupPitchEstimator} from './pitch-ui.js';
-import {setupSpeechExperiment} from './speech-ui.js';
 
 const $ = id => document.getElementById(id);
 const NS = 'http://www.w3.org/2000/svg';
@@ -144,7 +143,6 @@ async function playSound(which) {
 }
 function startFit() {
   if (!state.sim) return;
-  speechExperiment.cancel('Speech fitting stopped to run the single-vowel experiment.');
   if (state.running) { cancelFit('Fitting paused. The current shape is preserved. Fit again to continue with a fresh optimizer.'); return; }
   stopAudio(); cancelFit(); clearFit();
   state.running = true; $('fit').textContent = 'Pause fitting';
@@ -198,9 +196,6 @@ $('tract-length').addEventListener('input', event => {
 });
 const pitchEstimator = setupPitchEstimator({
   onPitch: pitch => { stopAudio(); state.pitch = pitch; syncControls(); },
-});
-const speechExperiment = setupSpeechExperiment({
-  onStart: () => { stopAudio(); cancelFit(); pitchEstimator.cancel('Pitch analysis stopped to fit the full recording.'); },
 });
 $('pitch').addEventListener('input', event => { pitchEstimator.cancel('Analysis canceled because the source pitch was adjusted.'); stopAudio(); state.pitch = +event.target.value; syncControls(); });
 $('show-target').addEventListener('change', drawTube);
