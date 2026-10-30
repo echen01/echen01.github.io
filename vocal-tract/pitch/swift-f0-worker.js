@@ -46,10 +46,10 @@ async function loadModel(id) {
   }
 }
 
-async function infer(samples) {
+async function infer(samples, minimum = FMIN, maximum = FMAX) {
   const input = new ort.Tensor('float32', samples, [1, samples.length]);
-  const fmin = new ort.Tensor('float32', Float32Array.of(FMIN), []);
-  const fmax = new ort.Tensor('float32', Float32Array.of(FMAX), []);
+  const fmin = new ort.Tensor('float32', Float32Array.of(minimum), []);
+  const fmax = new ort.Tensor('float32', Float32Array.of(maximum), []);
   let output;
   try {
     output = await session.run({ audio: input, fmin, fmax });
@@ -65,7 +65,7 @@ async function infer(samples) {
   }
 }
 
-async function estimate(samples, id) {
+async function estimate(samples, id, minimum, maximum) {
   checkCanceled(id);
   await loadModel(id);
   checkCanceled(id);
@@ -81,7 +81,7 @@ async function estimate(samples, id) {
     const last = Math.min(n, first + WINDOW_FRAMES);
     const left = Math.max(0, first - LEFT_FRAMES);
     const end = last === n ? samples.length : (last + LOOKAHEAD_FRAMES) * HOP;
-    const part = await infer(samples.subarray(left * HOP, end));
+    const part = await infer(samples.subarray(left * HOP, end), minimum, maximum);
     const from = first - left;
     if (part.pitch.length < from + last - first || part.confidence.length !== part.pitch.length) {
       throw new Error('The pitch estimator returned an unexpected number of frames.');
@@ -126,7 +126,7 @@ self.onmessage = ({ data }) => {
   // Serialize requests because an ONNX session owns reusable WASM buffers.
   queue = queue.then(async () => {
     try {
-      const result = await estimate(data.samples, data.id);
+      const result = await estimate(data.samples, data.id, data.fmin, data.fmax);
       self.postMessage({ id: data.id, result }, [result.times.buffer, result.pitchHz.buffer, result.confidence.buffer, result.voiced.buffer, result.loudnessDb.buffer]);
     } catch (error) {
       self.postMessage({ id: data.id, error: error instanceof Error ? error.message : String(error) });

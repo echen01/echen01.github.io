@@ -34,6 +34,30 @@ for (let i = 0; i < areas.length; i++) {
 }
 console.log(`32 WASM reverse-mode gradient checks passed; max scaled error ${maxGradientError.toExponential(3)}.`);
 
+// Exercise the fused WASM export, including the dependence of the optimal
+// gain on areas. A single frequency has no information after removing gain.
+const gainFrequencies = [0, 80, 203, 503, 1067, 2331, 3893, 4979, 8000];
+const gainTarget = simulator.response(PRESETS[0].areas, 17.5, gainFrequencies).magnitudeDb.map(v => v + 47);
+const centered = simulator.gainInvariantLossAndGradient(areas, gainTarget, 17.5, gainFrequencies);
+let maxCenteredGradientError = 0;
+for (let i = 0; i < areas.length; i++) {
+  const plus = [...areas], minus = [...areas], epsilon = 1e-5;
+  plus[i] *= Math.exp(epsilon); minus[i] *= Math.exp(-epsilon);
+  const numeric = (simulator.gainInvariantLossAndGradient(plus, gainTarget, 17.5, gainFrequencies).loss
+    - simulator.gainInvariantLossAndGradient(minus, gainTarget, 17.5, gainFrequencies).loss) / (2 * epsilon);
+  const error = Math.abs(centered.gradient[i] - numeric) / (1 + Math.abs(numeric));
+  maxCenteredGradientError = Math.max(maxCenteredGradientError, error);
+  assert.ok(error < 2e-6, `Gain-invariant gradient mismatch at area ${i}`);
+}
+const shifted = simulator.gainInvariantLossAndGradient(areas, gainTarget.map(v => v + 200), 17.5, gainFrequencies);
+assert.ok(Math.abs(shifted.loss - centered.loss) < 1e-12);
+assert.ok(Math.abs(shifted.gainDb - centered.gainDb - 200) < 1e-12);
+for (let i = 0; i < areas.length; i++) assert.ok(Math.abs(shifted.gradient[i] - centered.gradient[i]) < 1e-11);
+const single = simulator.gainInvariantLossAndGradient(areas, [73], 17.5, [500]);
+assert.equal(single.loss, 0); assert(single.gradient.every(g => g === 0));
+assert.throws(() => simulator.gainInvariantLossAndGradient(areas, [NaN], 17.5, [500]));
+console.log(`32 fused gain-invariant gradient checks passed; max scaled error ${maxCenteredGradientError.toExponential(3)}. Gain shifts and single-bin degeneracy passed.`);
+
 for (const preset of PRESETS) {
   const fitter = createFitter(simulator, {areas: initialAreas(), targetAreas: preset.areas, length: preset.length});
   const initialLoss = fitter.snapshot().loss;

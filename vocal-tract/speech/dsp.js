@@ -1,3 +1,5 @@
+import {lfPulseCycle} from '../lf-source.js';
+
 // Small, dependency-free DSP helpers for the browser speech experiment.
 // This is a source-filter approximation: unvoiced excitation is deterministic
 // broadband noise at the glottis, not the paper's distributed turbulence model.
@@ -66,39 +68,6 @@ export function windowSpectrum(samples, center, size = FFT_SIZE) {
   fft(real, imag);
   const magnitude = Float64Array.from({length: size / 2 + 1}, (_, i) => Math.hypot(real[i], imag[i]));
   return {real, imag, magnitude};
-}
-
-// Same LF flow-pulse parameterization as simulator/index.js and difftlm/glottis.py.
-// One cycle has OQ=.5, SQ=3, TL=.02; no aspiration or breath noise is included.
-function lfPulseCycle(count) {
-  const te = .5, tp = .375, ta = .02, w = Math.PI / tp;
-  let epsilon = 1 / ta;
-  for (let i = 0; i < 40; i++) {
-    const h = 1 - Math.exp(-epsilon * (1 - te)) - epsilon * ta;
-    if (Math.abs(h) < 1e-5) break;
-    epsilon -= h / ((1 - te) * Math.exp(-epsilon * (1 - te)) - ta);
-  }
-  const sw = Math.sin(w * te), cw = Math.cos(w * te);
-  const x = sw * Math.exp(epsilon * te) * (-Math.exp(-epsilon) / epsilon - Math.exp(-epsilon)) / (epsilon * ta);
-  const y = sw * Math.exp(epsilon * te) * (-Math.exp(-epsilon * te) / epsilon - te * Math.exp(-epsilon)) / (epsilon * ta);
-  const objective = a => w / (w * w + a * a) + Math.exp(a * te) * ((a * sw - w * cw) / (w * w + a * a) + x - y);
-  let lo = 0, hi = 0, alpha = 0;
-  for (let i = 0; i < 20; i++) { hi++; if (objective(hi) < 0) break; }
-  if (objective(hi) < 0) for (let i = 0; i < 20; i++) {
-    const flo = objective(lo), fhi = objective(hi);
-    alpha = lo - flo * (hi - lo) / (fhi - flo);
-    const f = objective(alpha);
-    if (Math.abs(f) <= 1e-5) break;
-    if (f < 0) hi = alpha; else lo = alpha;
-  }
-  const b = 1 / ((Math.exp(alpha * tp) * (alpha * Math.sin(w * tp) - w * Math.cos(w * tp)) + w) / (w * w + alpha * alpha));
-  const open = t => b * (Math.exp(alpha * t) * (alpha * Math.sin(w * t) - w * Math.cos(w * t)) + w) / (w * w + alpha * alpha);
-  const factor = b * Math.exp(alpha * te) * sw * Math.exp(epsilon * te) / (epsilon * ta);
-  const ret = t => factor * (-Math.exp(-epsilon * t) / epsilon - t * Math.exp(-epsilon));
-  return Float64Array.from({length: count}, (_, i) => {
-    const t = i / count;
-    return t < te ? open(t) : open(te) + ret(t) - ret(te);
-  });
 }
 
 /**

@@ -44,18 +44,20 @@ function getWorker() {
 /**
  * Estimate monophonic pitch from finite, mono Float32 PCM sampled at 16 kHz.
  * This function preserves the caller's samples. It does not normalize audio.
- * Options: onStage('loading'|'preparing'|'analyzing'), onProgress(0..1), signal.
+ * Options: onStage('loading'|'preparing'|'analyzing'), onProgress(0..1), signal,
+ * fmin/fmax within the model's supported range (defaults FMIN/FMAX).
  * Returns {times, pitchHz, confidence, voiced, loudnessDb, sampleRate,
  * framePeriod, modelVersion}. Pitch values at unvoiced frames are not reliable;
  * use the voiced mask (confidence >= 0.5, after SwiftF0's silence gate).
  */
-export function estimatePitch(samples, { onStage, onProgress, signal } = {}) {
+export function estimatePitch(samples, { onStage, onProgress, signal, fmin = FMIN, fmax = FMAX } = {}) {
   if (!(samples instanceof Float32Array) || !samples.length) {
     return Promise.reject(new TypeError('Pitch estimation needs nonempty mono Float32 audio at 16 kHz.'));
   }
   if (!samples.every(Number.isFinite)) {
     return Promise.reject(new TypeError('The audio contains invalid sample values.'));
   }
+  if (!Number.isFinite(fmin) || !Number.isFinite(fmax) || fmin < FMIN || fmax > FMAX || fmin >= fmax) return Promise.reject(new Error('Pitch bounds must lie inside SwiftF0’s supported frequency range.'));
   if (signal?.aborted) return Promise.reject(new DOMException('Pitch estimation canceled.', 'AbortError'));
 
   return new Promise((resolve, reject) => {
@@ -82,7 +84,7 @@ export function estimatePitch(samples, { onStage, onProgress, signal } = {}) {
     signal?.addEventListener('abort', abort, { once: true });
     try {
       const copy = samples.slice();
-      getWorker().postMessage({ type: 'estimate', id, samples: copy }, [copy.buffer]);
+      getWorker().postMessage({ type: 'estimate', id, samples: copy, fmin, fmax }, [copy.buffer]);
     } catch (error) {
       cleanup();
       reject(error);

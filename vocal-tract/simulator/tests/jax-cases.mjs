@@ -73,4 +73,12 @@ const broad = localized(5, 17, 2.4, .16).map((area, i) => clamp(area * (1 + .08 
 broad[N - 1] = 16;
 add('broad-constriction-wide-lip', broad, PRESETS[2].areas, 20, 2048);
 
+// The RFF field allows softplus outputs down to 1e-4 cm²; include that
+// boundary as well as the original interactive slider range above.
+add('rff-area-floor', constant(1e-4), constant(.12), 17.5, 512);
+for (const position of [0, 16, 31]) {
+  const geometry = constant(2.7); geometry[position] = 1e-4;
+  add(`rff-floor-section-${position}`, geometry, PRESETS[0].areas, 17.5, 512);
+}
+
 export default cases;

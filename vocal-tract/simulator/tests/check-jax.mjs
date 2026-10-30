@@ -52,6 +52,16 @@ for (let i = 0; i < cases.length; i++) {
     lossJax: expected.loss, lossWasm: actual.loss, forwardRelative, lossScaled,
     gradientAbsolute, gradientScaled, gradientRelativeL2, gradientNorm, worstCoordinate};
   result.passed = Object.entries(tolerances).every(([key, tolerance]) => Number.isFinite(result[key]) && result[key] <= tolerance);
+  const centered = sim.gainInvariantLossAndGradient(test.areas, expected.targetDb, test.length, expected.frequencies);
+  const centeredDelta = centered.gradient.map((g, j) => g - expected.gainInvariantGradient[j]);
+  result.gainInvariantLossScaled = Math.abs(centered.loss - expected.gainInvariantLoss) / (1 + Math.abs(expected.gainInvariantLoss));
+  result.gainInvariantGradientScaled = Math.max(...centeredDelta.map((d, j) => Math.abs(d) / (1 + Math.abs(expected.gainInvariantGradient[j]))));
+  result.gainInvariantGradientRelativeL2 = Math.hypot(...centeredDelta) / Math.max(1e-12, Math.hypot(...expected.gainInvariantGradient));
+  result.gainDbAbsolute = Math.abs(centered.gainDb - expected.gainDb);
+  result.passed &&= result.gainInvariantLossScaled <= tolerances.lossScaled
+    && result.gainInvariantGradientScaled <= tolerances.gradientScaled
+    && result.gainInvariantGradientRelativeL2 <= tolerances.gradientRelativeL2
+    && result.gainDbAbsolute <= 1e-8;
   results.push(result);
   console.log(`${result.passed ? 'PASS' : 'FAIL'} ${test.name}: forward ${forwardRelative.toExponential(2)}, gradient scaled ${gradientScaled.toExponential(2)}, relative L2 ${gradientRelativeL2.toExponential(2)}`);
 }
@@ -65,11 +75,15 @@ const report = {
     passed: results.every(result => result.passed),
     cases: results.length,
     frequencyComparisons: results.reduce((sum, result) => sum + result.bins, 0),
-    gradientCoordinates: results.length * 32,
+    gradientCoordinates: results.length * 32 * 2,
+    objectivesPerCase: 2,
     maxForwardRelative: Math.max(...results.map(r => r.forwardRelative)),
     maxLossScaled: Math.max(...results.map(r => r.lossScaled)),
     maxGradientScaled: Math.max(...results.map(r => r.gradientScaled)),
     maxGradientRelativeL2: Math.max(...results.map(r => r.gradientRelativeL2)),
+    maxGainInvariantGradientScaled: Math.max(...results.map(r => r.gainInvariantGradientScaled)),
+    maxGainInvariantGradientRelativeL2: Math.max(...results.map(r => r.gainInvariantGradientRelativeL2)),
+    maxGainInvariantLossScaled: Math.max(...results.map(r => r.gainInvariantLossScaled)),
   },
   results,
 };

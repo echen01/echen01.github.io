@@ -98,9 +98,12 @@ export async function prepareSpeech(samples, pitch, {sampleRate = SAMPLE_RATE, s
 /** Exact gain-eliminated spectral objective. The best log gain is the mean
  * target-minus-prediction difference. Its derivative cancels because residuals
  * sum to zero; the envelope theorem permits holding this optimum fixed in the
- * existing WASM VJP. The returned gradient is with respect to log areas.
+ * VJP. The optimized WASM path centers residuals and Jacobians in one pass.
+ * The returned gradient is with respect to log areas.
  */
 export function gainInvariantLossAndGradient(sim, areas, targetDb, frequencies, length) {
+  if (sim.gainInvariantLossAndGradient) return sim.gainInvariantLossAndGradient(areas, targetDb, length, frequencies);
+  // Preserve support for reference/backends implementing only the original API.
   const prediction = sim.response(areas, length, frequencies).magnitudeDb;
   const gainDb = targetDb.reduce((sum, value, i) => sum + value - prediction[i], 0) / targetDb.length;
   const correctedTarget = targetDb.map(value => value - gainDb);
@@ -132,7 +135,7 @@ export function regularization(logAreas, frameCount, {spatialWeight = .006, temp
   return {spatialLoss, temporalLoss, gradient};
 }
 
-export async function evaluateTrajectory(sim, prepared, logAreas, {length = 17.5, signal, spatialWeight = .006, temporalWeight = .08} = {}) {
+export async function evaluateTrajectory(sim, prepared, logAreas, {length = 17.5, signal, spatialWeight = .006, temporalWeight = .08, yieldEveryFrames = 24} = {}) {
   const frameCount = prepared.frames.length;
   const penalty = regularization(logAreas, frameCount, {spatialWeight, temporalWeight});
   const gradient = penalty.gradient;
@@ -148,7 +151,7 @@ export async function evaluateTrajectory(sim, prepared, logAreas, {length = 17.5
       gainsDb[f] = evaluation.gainDb;
       for (let i = 0; i < NUM_AREAS; i++) gradient[f * NUM_AREAS + i] += evaluation.gradient[i] / prepared.activeFrames;
     }
-    if (f % 24 === 23) await wait();
+    if (yieldEveryFrames > 0 && (f + 1) % yieldEveryFrames === 0) await wait();
   }
   const totalLoss = dataLoss + penalty.spatialLoss + penalty.temporalLoss;
   if (!Number.isFinite(totalLoss) || !gradient.every(Number.isFinite)) throw new Error('Speech fitting encountered an unstable acoustic response. Try a shorter recording.');

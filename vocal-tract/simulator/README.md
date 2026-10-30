@@ -1,10 +1,15 @@
 # The browser acoustic experiment
 
-This directory contains a small, reproducible Rust/WebAssembly demonstration of
+This directory contains a small, reproducible browser demonstration of
 the **stationary voiced** part of [diffTLM](https://github.com/echen01/diffTLM).
 It fits a synthetic target transfer spectrum by running actual reverse-mode
 backpropagation through a frequency-domain transmission-line model in the
 visitor's browser. No fitting trajectory is recorded or downloaded.
+The vowel demo uses WebGPU for transfer responses, reverse gradients, loss
+reduction, gradient clipping, and Adam. The Rust/WebAssembly CPU implementation
+with float64 arithmetic remains available through the numerical reference APIs
+and validation tests. LF harmonic synthesis and browser audio playback run on
+the host using the WebGPU simulator's complex response.
 
 ## Physics and scope
 
@@ -16,19 +21,35 @@ first 31 are propagating segments of length `L/32`; the browser matches that
 convention exactly. Areas are in cm²; length is in cm.
 
 The three target shapes resample the Fant area data supplied in
-`diffTLM/data/fant.py`. Their lengths are 17.5 cm for /ɑ/ and /i/, and 20 cm for /u/.
+`diffTLM/data/fant.py`. Their lengths are 17.5 cm for /ɑ/, 18 cm for /e/, and 20 cm for /u/.
 Playback uses a periodic Liljencrants–Fant flow source with the reference
 OQ=0.5, SQ=3, and TL=0.02, filtered by the same complex transfer function. A short
 fade prevents clicks; playback peak is normalized for comfortable comparison.
 
 The loss is mean squared natural-log transfer-magnitude error across 160
-frequencies from 80 Hz to 5 kHz. The optimizer is Adam on 32 log-area parameters;
-areas remain between 0.12 and 16 cm². Both the geometry and displayed loss are
-computed at every step. The derivative is with respect to log area.
+frequencies from 80 Hz to 5 kHz. The demo defaults to a spatial MFN neural field:
+four learned sine filters multiply three 256-wide affine layers, followed by
+one scalar output. Its 200,705 shared weights and biases predict a residual on
+the starting tube's log-area profile. The hidden layers and filters use the
+upstream FourierNet initialization, with input scale 32. An area scale of 0.1
+multiplies the network output before adding it to the starting log-area profile:
+`log(A) = clamp(log(A_start) + 0.1 * F(x), log(0.12), log(16))`.
+The backward pass includes the same factor. The initial
+profile is frozen and interpolated continuously in log area; zero output-layer
+weights preserve it exactly at step zero. All 32 values, including the glottal
+and lip boundaries, can change through the field. Areas stay within 0.12–16 cm².
+
+The acoustic reverse pass supplies derivatives with respect to log area, which
+backpropagate through the field to its parameters. Adam uses a global parameter
+gradient-norm limit of 5 and a cosine learning-rate schedule from 0.005 to 0.0005
+over 240 updates. Both CPU and WebGPU use this architecture, initialization,
+objective, and schedule; WebGPU keeps the field, acoustic reverse pass, and
+optimizer on the GPU. There is no extra smoothness penalty or coordinate jitter.
+Both geometry and displayed loss are evaluated at the same updated parameters.
 
 This experiment deliberately does not implement the paper's moving tract,
 Reynolds-gated turbulence, glottal/noise inference, multiresolution mel-STFT
-objective, or neural field parameterization. It is not an implementation of the
+objective, or a time-varying neural field. It is not an implementation of the
 full utterance reconstruction pipeline, and a good spectral fit does not imply
 unique or anatomical geometry. These limitations are also stated on the page.
 
@@ -97,15 +118,74 @@ coordinatewise scaled gradient error is `1.46e-13`, and maximum gradient-vector
 relative L2 error is `5.78e-14`. No simulator changes were needed. These values
 apply to the exact WASM and case specification identified by hashes in the report.
 
-## Browser API
+## WebGPU browser API
+
+```js
+import {createWebGpuSimulator} from './webgpu.js';
+import {PRESETS, initialAreas} from './index.js';
+const sim = await createWebGpuSimulator();
+const target = PRESETS[0];
+const spectrum = await sim.response(target.areas, target.length);
+const fitter = await sim.createMfnFitter({
+  areas: initialAreas(), targetAreas: target.areas, length: target.length,
+  iterations: 240, learningRate: .005,
+});
+await fitter.step(4); // 1–8 updates per bounded submission
+const snapshot = await fitter.snapshot();
+fitter.dispose();
+const audio = await sim.synthesize(snapshot.areas, target.length, 120, .8);
+sim.dispose();
+```
+
+The WebGPU MFN fitter uses the same 160-frequency objective, area bounds, clipping,
+and learning-rate schedule as `createVowelMfnFitter` in `mfn-field.js` on CPU.
+Its parameters, gradients, Adam moments,
+and complete loss history stay on the GPU between snapshots. Float32 rounding
+can produce different later optimization trajectories in this nonconvex problem.
+For both backends, the interactive worker displays every real optimization step, with a minimum
+25 ms pause between snapshots: a 240-step fit takes about six seconds. It leaves
+the GPU idle between updates and accepts cancellation during those pauses. This
+presentation pacing does not change the objective or Adam updates; the direct
+fitter API remains unpaced. Cancellation explicitly frees its GPU resources.
+WebGPU requires a supported browser and a secure context (HTTPS or localhost).
+If it is unavailable or the device is lost, the demo reports the error. There
+is no CPU option or automatic CPU fallback in the vowel fitting UI.
+
+Open `tests/webgpu.html` through the local server and click **Run validation**.
+It checks six transfer/gradient cases against the float64 reference, early Adam
+updates, complete 240-step fits for all three vowels, nine LF audio cases, the
+existing gain-invariant speech objective, cancellation, disposal, unsupported
+WebGPU, and device loss. The latest local results are in
+`tests/webgpu-validation.json`; this is a numerical check, not a speed benchmark.
+That suite retains the independent-area `createFitter` API as a numerical baseline.
+The main demo uses the MFN fitter instead. The RFF implementation remains
+available through `createRffFitter` and `createVowelRffFitter` for comparisons.
+
+For the default neural field, run `node tests/mfn.test.mjs` and open
+`tests/mfn.html`. The Node test checks chained acoustic/MFN derivatives by finite
+differences across every affine and learned-filter block, initial geometry,
+area limits, and all three 240-step CPU fits. The browser test checks all 200,705
+parameter derivatives against the CPU implementation at steps 0, 10, and 240
+for each vowel, early optimizer trajectories, complete GPU fits, and
+completion/cancellation of the default CPU and WebGPU workers. Corresponding
+RFF checks remain in `tests/rff.test.mjs` and `tests/rff.html`.
+
+## CPU reference API
 
 ```js
 import {createSimulator, PRESETS, initialAreas, FREQUENCIES} from './index.js';
+import {createVowelMfnFitter} from './mfn-field.js';
 const sim = await createSimulator();
 const target = PRESETS[0];
 const spectrum = sim.response(target.areas, target.length);
 const {loss, gradient} = sim.lossAndGradient(initialAreas(), spectrum.magnitudeDb, target.length);
 const {samples, sampleRate} = sim.synthesize(target.areas, target.length, 120, .8);
+const fitter = await createVowelMfnFitter(sim, {
+  areas: initialAreas(), targetAreas: target.areas, length: target.length,
+  iterations: 240, learningRate: .005,
+});
+fitter.step();
+const snapshot = fitter.snapshot();
 ```
 
 `response` returns `frequencies`, `real`, `imag`, and `magnitudeDb` arrays. dB
@@ -113,11 +193,14 @@ values retain the source CGS scale; if offset for a chart, use one common offset
 for both curves. `lossAndGradient` returns the true loss and its derivative with
 respect to each log area.
 
-Use `fit-worker.js` as a module Worker. Send `{type:'start', areas, targetAreas,
-length, iterations:240, learningRate:.035}`. Each `progress` and final `done`
-message includes `iteration`, `areas`, `loss`, `gradient`, `gradientNorm`,
-`magnitudeDb`, `targetDb`, `history`, and `elapsedMs`. `stop` cancels at the next
-iteration boundary; terminating the Worker also cancels immediately. Failures
+Use `fit-worker.js` as a module Worker. Send `{type:'start', backend:'cpu', areas,
+targetAreas, length, iterations:240, learningRate:.005}`. `backend` accepts `cpu`
+(the default) or `webgpu`. The field defaults to MFN; pass `fieldType:'rff'` to
+compare the previous RFF field. Each `progress` and final `done` message includes
+`backend`, `parameterization:'mfn'` (or `'rff'`), `field` metadata, `iteration`, `areas`, `loss`, `gradient`, `gradientNorm`,
+`magnitudeDb`, `targetDb`, `history`, and `elapsedMs`. `stop` cancels between
+updates; a `stopped` message confirms resource cleanup.
+Terminating the Worker also cancels immediately. Failures
 produce `{type:'error', message}`. All computations are local.
 
 The model and source data are distributed under the accompanying MIT license.

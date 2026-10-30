@@ -1,8 +1,11 @@
-import {createSimulator, PRESETS, initialAreas, FREQUENCIES} from './simulator/index.js';
+import {PRESETS, initialAreas, FREQUENCIES} from './simulator/index.js?v=vowel-presets-e-1';
+import {createWebGpuSimulator} from './simulator/webgpu.js?v=vowel-mfn-e-1';
 import {setupPitchEstimator} from './pitch-ui.js';
-import {setupSpeechExperiment} from './speech-ui.js';
+import {setupSpeechExperiment} from './speech-ui.js?v=vowel-tubes-1';
+import {renderTractView} from './speech/tract-view.js?v=vowel-ground-truth-1';
 
 const $ = id => document.getElementById(id);
+const audioLabels = new Map(['listen-current', 'listen-target'].map(id => [id, $(id).textContent.trim()]));
 const NS = 'http://www.w3.org/2000/svg';
 function element(tag, attributes = {}, text) {
   const node = document.createElementNS(NS, tag);
@@ -14,8 +17,8 @@ function linePath(values, x, y) {
   return values.map((value, i) => `${i ? 'L' : 'M'}${x(i).toFixed(2)},${y(value).toFixed(2)}`).join(' ');
 }
 const state = {sim: null, areas: initialAreas(), target: PRESETS[0], length: PRESETS[0].length, pitch: 120, selected: 15, running: false, worker: null, iteration: 0, history: [], elapsedMs: 0, audio: null, source: null, audioButton: null, audioRequest: 0};
-const palette = {current: '#146f68', target: '#b96537'};
 let targetDb = [], currentDb = [], renderPending = false;
+let tubePlot, responseVersion = 0, responseTask = null, backendVersion = 0;
 
 function setStatus(message) { $('fit-status').textContent = message; }
 function syncControls() {
@@ -29,23 +32,11 @@ function syncControls() {
   $('pitch-value').textContent = `${state.pitch} Hz`;
 }
 function drawTube() {
-  const svg = $('tube-plot');
-  const x = i => 43 + i / 31 * 690;
-  const y = area => 148 - area / 16 * 126;
-  svg.replaceChildren(element('title', {id: 'tube-title'}, 'Vocal tract cross-sectional area'), element('desc', {id: 'tube-description'}, 'Edit the profile by dragging, or use the section and area sliders. Glottis on the left, lips on the right.'));
-  for (const area of [0, 4, 8, 12, 16]) {
-    svg.append(element('line', {x1: 43, y1: y(area), x2: 733, y2: y(area), class: 'plot-grid'}));
-    svg.append(element('text', {x: 31, y: y(area) + 4, 'text-anchor': 'end', class: 'plot-axis'}, area));
-  }
-  const current = linePath(state.areas, x, y);
-  svg.append(element('path', {d: `${current} L733,148 L43,148 Z`, fill: '#dcebe3', opacity: '.85'}));
-  if ($('show-target').checked) svg.append(element('path', {d: linePath(state.target.areas, x, y), class: 'plot-target'}));
-  svg.append(element('path', {d: current, class: 'plot-current'}));
-  svg.append(element('line', {x1: x(state.selected), x2: x(state.selected), y1: 18, y2: 148, stroke: palette.current, 'stroke-width': 1, opacity: .3}));
-  svg.append(element('circle', {cx: x(state.selected), cy: y(state.areas[state.selected]), r: 4.5, fill: palette.current, stroke: '#fff', 'stroke-width': 2}));
-  svg.append(element('text', {x: 43, y: 174, class: 'plot-axis'}, 'Glottis'));
-  svg.append(element('text', {x: 733, y: 174, class: 'plot-axis', 'text-anchor': 'end'}, 'Lips'));
-  svg.append(element('text', {x: 390, y: 174, class: 'plot-axis', 'text-anchor': 'middle'}, '32 cross-sectional areas · cm²'));
+  ({plot: tubePlot} = renderTractView($('tube-plot'), state.areas, {
+    lengthCm: state.length, radiusLimitCm: 2.5,
+    targetAreas: $('show-target').checked ? state.target.areas : undefined,
+    selectedIndex: state.selected,
+  }));
 }
 function drawSpectrum() {
   if (!targetDb.length) return;
@@ -94,13 +85,66 @@ function render() {
 function queueRender() {
   if (!renderPending) { renderPending = true; requestAnimationFrame(render); }
 }
-function responseUpdated() {
-  if (!state.sim) return;
-  currentDb = state.sim.response(state.areas, state.length).magnitudeDb;
-  queueRender();
+async function responseUpdated() {
+  responseVersion++; queueRender();
+  const sim = state.sim, generation = backendVersion;
+  if (!sim || responseTask?.sim === sim || state.running) return;
+  const task = {sim}; responseTask = task;
+  try {
+    let version;
+    do {
+      version = responseVersion;
+      const areas = [...state.areas], target = state.target, length = state.length;
+      const current = await sim.response(areas, length);
+      if (generation !== backendVersion) return false;
+      const reference = await sim.response(target.areas, length);
+      if (generation !== backendVersion) return false;
+      if (version === responseVersion && !state.running) {
+        currentDb = current.magnitudeDb; targetDb = reference.magnitudeDb; queueRender();
+      }
+    } while (version !== responseVersion && !state.running);
+    return true;
+  } catch (error) { backendUnavailable(error.message, generation); return false; }
+  finally { if (responseTask === task) responseTask = null; }
+}
+function backendUnavailable(message, generation) {
+  if (generation !== backendVersion) return;
+  backendVersion++; responseVersion++;
+  const sim = state.sim; state.sim = null; sim?.dispose?.();
+  stopAudio(); cancelFit();
+  $('engine-state').textContent = 'WebGPU unavailable'; $('engine-state').classList.remove('ready');
+  $('lab').setAttribute('aria-busy', 'false');
+  for (const id of ['fit', 'listen-current', 'listen-target']) $(id).disabled = true;
+  setStatus(message);
+}
+async function initializeSimulator() {
+  const generation = ++backendVersion;
+  stopAudio(); cancelFit(); clearFit();
+  const previous = state.sim; state.sim = null;
+  responseVersion++; previous?.dispose?.();
+  $('lab').setAttribute('aria-busy', 'true');
+  $('engine-state').textContent = 'Loading WebGPU…'; $('engine-state').classList.remove('ready');
+  for (const id of ['fit', 'listen-current', 'listen-target']) $(id).disabled = true;
+  for (const button of $('lab').querySelectorAll('.target-option, #reset')) button.disabled = false;
+  setStatus('Preparing WebGPU…'); queueRender();
+  try {
+    const sim = await createWebGpuSimulator({onDeviceLost: message => backendUnavailable(message, generation)});
+    if (generation !== backendVersion) { sim.dispose?.(); return; }
+    state.sim = sim;
+    if (!await responseUpdated() || generation !== backendVersion) return;
+    $('engine-state').textContent = 'WebGPU · ready'; $('engine-state').classList.add('ready');
+    $('lab').setAttribute('aria-busy', 'false');
+    for (const id of ['fit', 'listen-current', 'listen-target']) $(id).disabled = false;
+    setStatus('MFN field ready on WebGPU. Fit the current shape, or Reset to start from a neutral tube.');
+  } catch (error) { backendUnavailable(error.message, generation); }
 }
 function cancelFit(message) {
-  if (state.worker) { state.worker.terminate(); state.worker = null; }
+  if (state.worker) {
+    const worker = state.worker; state.worker = null;
+    worker.postMessage({type: 'stop'});
+    // Allow the worker's finally block to destroy its GPU buffers/device.
+    setTimeout(() => worker.terminate(), 2000);
+  }
   state.running = false;
   $('fit').textContent = state.iteration ? 'Fit again →' : 'Fit to target →';
   if (message) setStatus(message);
@@ -117,7 +161,7 @@ function editAreas() {
 function stopAudio() {
   state.audioRequest++;
   if (state.source) { state.source.onended = null; state.source.stop(); state.source = null; }
-  if (state.audioButton) { state.audioButton.textContent = state.audioButton.id === 'listen-current' ? '▷ Listen to current' : '▷ Listen to target'; state.audioButton.removeAttribute('aria-pressed'); state.audioButton = null; }
+  if (state.audioButton) { state.audioButton.textContent = audioLabels.get(state.audioButton.id); state.audioButton.removeAttribute('aria-pressed'); state.audioButton = null; }
 }
 async function playSound(which) {
   const button = $(`listen-${which}`);
@@ -131,7 +175,8 @@ async function playSound(which) {
     state.audio ??= new AudioContext();
     await state.audio.resume();
     if (request !== state.audioRequest) return;
-    const {samples, sampleRate} = state.sim.synthesize(which === 'target' ? state.target.areas : state.areas, state.length, state.pitch, 1.2);
+    const {samples, sampleRate} = await state.sim.synthesize(which === 'target' ? state.target.areas : state.areas, state.length, state.pitch, 1.2);
+    if (request !== state.audioRequest) return;
     const buffer = state.audio.createBuffer(1, samples.length, sampleRate);
     buffer.copyToChannel(samples, 0);
     const source = state.audio.createBufferSource();
@@ -147,10 +192,10 @@ function startFit() {
   speechExperiment.cancel('Speech fitting stopped to run the single-vowel experiment.');
   if (state.running) { cancelFit('Fitting paused. The current shape is preserved. Fit again to continue with a fresh optimizer.'); return; }
   stopAudio(); cancelFit(); clearFit();
-  state.running = true; $('fit').textContent = 'Pause fitting';
-  setStatus('Backpropagating through the acoustic model…');
+  state.running = true; responseVersion++; $('fit').textContent = 'Pause fitting';
+  setStatus('Preparing the MFN field on WebGPU…');
   let worker;
-  try { worker = new Worker(new URL('./simulator/fit-worker.js', import.meta.url), {type: 'module'}); }
+  try { worker = new Worker(new URL('./simulator/fit-worker.js?v=vowel-mfn-e-1', import.meta.url), {type: 'module'}); }
   catch { cancelFit('This browser could not start the fitting worker. You can still reshape the tube and listen.'); return; }
   state.worker = worker;
   worker.onmessage = ({data}) => {
@@ -158,7 +203,8 @@ function startFit() {
     if (data.type === 'error') { cancelFit(`Fitting stopped: ${data.message}`); return; }
     if (data.type !== 'progress' && data.type !== 'done') return;
     state.areas = data.areas; state.iteration = data.iteration; state.history = data.history; state.elapsedMs = data.elapsedMs;
-    currentDb = data.magnitudeDb; queueRender();
+    currentDb = data.magnitudeDb; targetDb = data.targetDb; queueRender();
+    if (data.type === 'progress') setStatus('Fitting the MFN neural field with WebGPU…');
     if (data.type === 'done') {
       const first = data.history[0];
       const reduction = first > 0 ? 100 * (1 - data.loss / first) : 0;
@@ -166,11 +212,11 @@ function startFit() {
       if (first === 0 && data.loss > 0) change = 'Spectral loss increased from zero. Reset the tube to begin a new experiment.';
       else if (reduction >= .05) change = `Spectral loss decreased by ${reduction >= 99.9 ? '>99.9' : reduction.toFixed(1)}%.`;
       else if (reduction <= -.05) change = `Spectral loss increased by ${(-reduction).toFixed(1)}%. Try resetting the tube before fitting again.`;
-      cancelFit(`Finished ${data.iteration} updates. ${change} Listen to the fit or reveal the target shape.`);
+      cancelFit(`Finished ${data.iteration} updates. ${change} ${$('show-target').checked ? 'Compare the fit with the ground-truth outline.' : 'Enable Ground truth to compare the shapes.'}`);
     }
   };
   worker.onerror = () => { if (state.worker === worker) cancelFit('The fitting worker could not run. Reload the page to try again.'); };
-  worker.postMessage({type: 'start', areas: [...state.areas], targetAreas: state.target.areas, length: state.length, iterations: 240, learningRate: .035});
+  worker.postMessage({type: 'start', backend: 'webgpu', areas: [...state.areas], targetAreas: state.target.areas, length: state.length, iterations: 240, learningRate: .005});
 }
 
 for (const preset of PRESETS) {
@@ -182,7 +228,6 @@ for (const preset of PRESETS) {
     stopAudio(); cancelFit(); clearFit();
     state.target = preset; state.length = preset.length; state.areas = initialAreas();
     for (const option of $('target-options').children) option.setAttribute('aria-pressed', option === button ? 'true' : 'false');
-    targetDb = state.sim.response(preset.areas, state.length).magnitudeDb;
     $('fit').textContent = 'Fit to target →';
     setStatus(`${preset.name} target selected. Start fitting from this neutral tube, or edit it first.`);
     responseUpdated();
@@ -193,13 +238,14 @@ $('section').addEventListener('input', event => { state.selected = +event.target
 $('area').addEventListener('input', event => { state.areas[state.selected] = +event.target.value; editAreas(); });
 $('tract-length').addEventListener('input', event => {
   stopAudio(); cancelFit(); clearFit(); state.length = +event.target.value;
-  if (state.sim) targetDb = state.sim.response(state.target.areas, state.length).magnitudeDb;
   setStatus('Tract length changes both the current and target resonances.'); responseUpdated();
 });
 const pitchEstimator = setupPitchEstimator({
   onPitch: pitch => { stopAudio(); state.pitch = pitch; syncControls(); },
 });
 const speechExperiment = setupSpeechExperiment({
+  parameterization: 'faithful-rff',
+  iterations: 100,
   onStart: () => { stopAudio(); cancelFit(); pitchEstimator.cancel('Pitch analysis stopped to fit the full recording.'); },
 });
 $('pitch').addEventListener('input', event => { pitchEstimator.cancel('Analysis canceled because the source pitch was adjusted.'); stopAudio(); state.pitch = +event.target.value; syncControls(); });
@@ -210,20 +256,21 @@ $('fit').addEventListener('click', startFit);
 $('reset').addEventListener('click', () => { stopAudio(); cancelFit(); clearFit(); state.areas = initialAreas(); $('fit').textContent = 'Fit to target →'; setStatus('Reset to a neutral tube. Choose a target and start fitting.'); responseUpdated(); });
 
 let dragging = false;
-function movePoint(event) {
-  const svg = $('tube-plot');
-  const bounds = svg.getBoundingClientRect();
-  const x = (event.clientX - bounds.left) / bounds.width * 760;
-  const y = (event.clientY - bounds.top) / bounds.height * 190;
-  state.selected = Math.min(31, Math.max(0, Math.round((x - 43) / 690 * 31)));
-  state.areas[state.selected] = Math.min(16, Math.max(.12, (148 - y) / 126 * 16));
+function tubePoint(event) {
+  return new DOMPoint(event.clientX, event.clientY).matrixTransform($('tube-plot').getScreenCTM().inverse());
+}
+function movePoint(point) {
+  state.selected = tubePlot.sectionAt(point.x);
+  state.areas[state.selected] = Math.min(16, Math.max(.12, tubePlot.areaAt(point.y)));
   editAreas();
 }
 $('tube-plot').addEventListener('pointerdown', event => {
   if (!state.sim || event.button !== 0) return;
-  dragging = true; $('tube-plot').setPointerCapture(event.pointerId); movePoint(event);
+  const point = tubePoint(event);
+  if (!tubePlot.contains(point.x, point.y)) return;
+  dragging = true; $('tube-plot').setPointerCapture(event.pointerId); movePoint(point);
 });
-$('tube-plot').addEventListener('pointermove', event => { if (dragging) movePoint(event); });
+$('tube-plot').addEventListener('pointermove', event => { if (dragging) movePoint(tubePoint(event)); });
 $('tube-plot').addEventListener('pointerup', () => { dragging = false; });
 $('tube-plot').addEventListener('pointercancel', () => { dragging = false; });
 
@@ -251,15 +298,5 @@ function updateReadingProgress() {
 addEventListener('scroll', updateReadingProgress, {passive: true});
 addEventListener('resize', updateReadingProgress);
 render();
-try {
-  state.sim = await createSimulator();
-  targetDb = state.sim.response(state.target.areas, state.length).magnitudeDb;
-  currentDb = state.sim.response(state.areas, state.length).magnitudeDb;
-  $('engine-state').textContent = 'Rust / WASM · ready'; $('engine-state').classList.add('ready');
-  $('lab').setAttribute('aria-busy', 'false');
-  for (const button of $('lab').querySelectorAll('.target-option, #listen-current, #listen-target, #fit, #reset')) button.disabled = false;
-  render();
-} catch (error) {
-  $('engine-state').textContent = 'Simulator unavailable'; $('lab').setAttribute('aria-busy', 'false');
-  setStatus(`${error.message} You can still explore the paper figures and recorded results below.`);
-}
+addEventListener('pagehide', () => { backendVersion++; stopAudio(); cancelFit(); state.sim?.dispose?.(); state.sim = null; });
+await initializeSimulator();

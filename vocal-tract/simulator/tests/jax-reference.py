@@ -10,6 +10,7 @@ import hashlib
 import json
 from pathlib import Path
 import sys
+sys.dont_write_bytecode = True
 import tempfile
 import urllib.request
 
@@ -71,14 +72,18 @@ def main():
             def response(theta, length, sim=simulator, u=impulse, n=noise):
                 return jnp.fft.rfft(sim.step_frame(u, jnp.exp(theta), n, length))
 
-            def loss(theta, target_db, bins, length, response_fn=response):
+            def loss(theta, target_db, bins, length, centered=False, response_fn=response):
                 h = response_fn(theta, length)[bins]
                 target = target_db * jnp.log(10.0) / 20.0
-                return jnp.mean((jnp.log(jnp.abs(h)) - target) ** 2)
+                residual = jnp.log(jnp.abs(h)) - target
+                if centered:
+                    residual = residual - jnp.mean(residual)
+                return jnp.mean(residual ** 2)
 
-            evaluators[key] = (jax.jit(response), jax.jit(jax.value_and_grad(loss)))
+            evaluators[key] = (jax.jit(response), jax.jit(jax.value_and_grad(loss)),
+                jax.jit(jax.value_and_grad(lambda theta, target, bins, length, loss_fn=loss: loss_fn(theta, target, bins, length, True))))
 
-        response_fn, value_and_grad = evaluators[key]
+        response_fn, value_and_grad, centered_value_and_grad = evaluators[key]
         theta = jnp.log(jnp.asarray(case["areas"], dtype=jnp.float64))
         target_theta = jnp.log(jnp.asarray(case["targetAreas"], dtype=jnp.float64))
         bins = jnp.asarray(case["bins"], dtype=jnp.int32)
@@ -90,6 +95,8 @@ def main():
         target_db = 20.0 / jnp.log(10.0) * jnp.log(jnp.abs(target_h))
         value, gradient = value_and_grad(theta, target_db, bins, length)
         gradient = np.asarray(gradient)
+        centered_value, centered_gradient = centered_value_and_grad(theta, target_db, bins, length)
+        gain_db = jnp.mean(target_db - 20.0 / jnp.log(10.0) * jnp.log(jnp.abs(h)))
         assert h.dtype == np.complex128 and gradient.dtype == np.float64
         assert np.all(np.isfinite(h)) and np.all(np.isfinite(gradient)) and np.isfinite(float(value))
         results.append({
@@ -98,6 +105,8 @@ def main():
             "real": h.real.tolist(), "imag": h.imag.tolist(),
             "targetDb": np.asarray(target_db).tolist(),
             "loss": float(value), "gradient": gradient.tolist(),
+            "gainInvariantLoss": float(centered_value), "gainInvariantGradient": np.asarray(centered_gradient).tolist(),
+            "gainDb": float(gain_db),
         })
         print(f"JAX: {case['name']} ({len(case['bins'])} bins)", file=sys.stderr, flush=True)
 

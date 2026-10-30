@@ -1,180 +1,490 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Reconstructing the Vocal Tract · Eric Ming Chen, Jin Woo Lee &amp; Vincent Sitzmann</title>
-  <meta name="description" content="Fit a whole speech recording in your browser and watch its inferred vocal tract areas change. Explore differentiable acoustic simulation and results from our NeurIPS 2026 paper.">
+  <meta name="description"
+    content="A differentiable acoustic simulator that connects vocal tract geometry to speech. Explore the physics, run interactive optimizations in your browser, and see speech and MRI reconstruction results from our NeurIPS 2026 paper.">
   <meta name="theme-color" content="#faf9f6">
   <link rel="canonical" href="https://echen01.github.io/vocal-tract/">
-  <link rel="stylesheet" href="style.css">
-  <script type="module" src="page.js"></script>
+  <link rel="stylesheet" href="style.css?v=record-inline-1">
+  <script type="module" src="page.js?v=vowel-mfn-e-1"></script>
 </head>
+
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
   <div class="reading-progress" aria-hidden="true"><span id="reading-progress"></span></div>
   <main id="main" class="article">
-    <header class="paper-header">
-      <a class="back-link" href="../">← Eric Ming Chen</a>
+    <header class="paper-header" id="intro">
+      <a class="back-link" href="../">← Eric M. Chen</a>
       <p class="eyebrow">NeurIPS 2026 · Spotlight</p>
-      <h1>Reconstructing the Vocal Tract with Differentiable Acoustic Simulation</h1>
-      <p class="authors"><a href="https://echen01.github.io/">Eric Ming Chen</a><sup>1</sup>, Jin Woo Lee<sup>2,3</sup>, <a href="https://www.vincentsitzmann.com/">Vincent Sitzmann</a><sup>1</sup></p>
+      <h1>Reconstructing the Vocal Tract with Differentiable Acoustic Simulation - Interactive Web Demo</h1>
+      <p class="authors"><a href="https://echen01.github.io/">Eric Ming Chen</a><sup>1</sup>, <a
+          href="https://jnwoo.com/">Jin Woo Lee</a><sup>2,3</sup>, <a href="https://www.vincentsitzmann.com/">Vincent
+          Sitzmann</a><sup>1</sup></p>
       <p class="affiliations"><sup>1</sup>MIT CSAIL &nbsp; <sup>2</sup>MIT RLE &nbsp; <sup>3</sup>KAIST GSCT</p>
       <nav class="paper-links" aria-label="Paper resources">
         <a href="https://arxiv.org/abs/2609.36737">Paper <span aria-hidden="true">↗</span></a>
         <a href="https://github.com/echen01/diffTLM">Code <span aria-hidden="true">↗</span></a>
+        <a href="#playground">Playground <span aria-hidden="true">↓</span></a>
         <a href="https://people.csail.mit.edu/echen/vocal_recon/">Supplement <span aria-hidden="true">↗</span></a>
         <a href="#citation">BibTeX <span aria-hidden="true">↓</span></a>
       </nav>
-      <p class="lead">The shape of your vocal tract gives your voice its sound. Can we work backward—from a recording to the geometry that produced it?</p>
-      <p>We build a differentiable acoustic simulator that turns a moving tube into speech. By backpropagating through the physics, we can optimize the tube’s shape to match a recording—and connect sound to an interpretable model of the vocal tract.</p>
+
+      <p><strong>diffTLM</strong> is a differentiable and GPU accelerated acoustic tube simulator for the vocal
+        tract. The
+        differentiable simulator synthesizes speech by propagating sound along an acoustic tube model of the vocal
+        tract, and via its
+        gradients, can reconstruct the shape of the vocal tract from the sound it produces.</p>
+
+      <p> This demo runs entirely in your web browser via WebGPU! Everything is run locally and no data is stored.
+      </p>
     </header>
 
     <figure class="paper-figure overview-figure">
-      <a href="assets/overview.png" class="figure-link" aria-label="Open the method overview at full resolution"><img src="assets/overview.png" width="1800" height="728" alt="Overview of differentiable vocal tract simulation: geometry determines an acoustic tube, which synthesizes speech and carries gradients back to the geometry."></a>
-      <figcaption><span class="figure-number">The idea.</span> Geometry produces sound; gradients carry the difference between synthesized and target audio back to the geometry. The same simulator can ground a neural field, a speech encoder, or an MRI generator.</figcaption>
+      <a href="assets/overview.png" class="figure-link" aria-label="Open method overview at full resolution"><img
+          src="assets/overview.png" width="1800" height="728"
+          alt="Overview of differentiable vocal tract simulation: geometry determines an acoustic tube, which synthesizes speech and carries gradients back to the geometry."></a>
+      <figcaption><span class="figure-number">Method Overview.</span> We introduce a method to reconstruct a MRI video
+        of a person's moving vocal tract from speech. (a) We first extract cross-sectional areas along the vocal tract.
+        (b) These areas define an acoustic tube. Our differentiable simulator propagates sound through the acoustic tube
+        to
+        synthesize speech. Gradients from the loss flow back through the simulator and the generative model into a set
+        of
+        latent vectors, reconstructing the MRI video from the target speech signal.</figcaption>
     </figure>
+    <section id="intro">
+      <h2>Motivation</h2>
+      <p>Learning to speak is an inverse problem. An infant babbles to discover the non-linear
+        mapping between their articulatory motor commands and their speech, learning the controls required
+        to produce language. Most remarkably, children solve this inverse problem without ever seeing paired
+        data between the muscle configuration of their vocal tract and the speech it produces.</p>
 
-    <nav class="contents" aria-label="On this page"><span>On this page</span><a href="#physics">The physics</a><a href="#playground">Try it</a><a href="#parameterization">Why neural fields?</a><a href="#results">Listen &amp; look</a></nav>
-
-    <section id="physics">
-      <p class="section-number">01 / From shape to sound</p>
-      <h2>A physical model you can differentiate</h2>
-      <p>Your vocal folds provide an excitation. The cavities above them—the throat and mouth—filter that excitation. Changing a constriction or opening changes the resonances, or <em>formants</em>, that help distinguish one speech sound from another.</p>
-      <p>We approximate the vocal tract with a chain of acoustic tube sections. Their cross-sectional areas determine how pressure and flow propagate, including losses at the walls and radiation at the lips. For voiced sound in a fixed configuration, the frequency-domain model is a transfer function:</p>
-      <div class="equation" role="math" aria-label="Output pressure at frequency omega equals the vocal tract transfer function times the input excitation"><span>p<sub>out</sub>(ω)</span><span class="math-equals">=</span><span class="math-shape">H(A, ℓ; ω)</span><span>· g(ω)</span></div>
-      <p class="equation-caption"><span class="legend-dot current"></span><strong>A</strong> is the area along the tract, <strong>ℓ</strong> its length, and <strong>g</strong> the excitation.</p>
-      <p>Working in the frequency domain lets us evaluate frequencies and short overlapping windows in parallel. The paper reports a <strong>70× speedup over time-domain simulation on an RTX 4090</strong> with 25 ms windows and a ¼-window hop. A differentiable turbulence model extends synthesis from vowels to consonants.</p>
-      <details class="results-details"><summary>A closer look at the loss landscape</summary><p>Speed is only one consideration. A useful differentiable simulator also needs gradients that guide reconstruction. The paper compares losses under time-domain and frequency-domain synthesis as the vocal tract changes.</p><figure class="paper-figure"><a href="assets/loss-landscapes.png" class="figure-link" aria-label="Open the loss landscape comparison"><img src="assets/loss-landscapes.png" loading="lazy" alt="Paper visualization comparing the loss landscapes of time-domain and frequency-domain acoustic synthesis."></a><figcaption>The frequency-domain formulation improves the optimization landscape as well as enabling parallel computation. See the paper for the complete comparison and experimental setup.</figcaption></figure></details>
+      <p>In robotics, this type of sensorimotor learning is accelerated by differentiable simulators such as Mujoco MJX,
+        Taichi and Warp. These simulators allow gradients from a physical environment to backpropagate directly to a
+        policy,
+        enabling efficient learning of locomotion and manipulation. But to learn the physical actions of
+        your mouth, tongue, etc. that form language, no equivalent computational infrastructure exists. Our
+        differentiable simulator
+        provides the infrastructure to study speech as a physically-grounded learning problem. </p>
     </section>
 
-    <section id="playground">
-      <p class="section-number">02 / An experiment in your browser</p>
-      <h2>A sentence becomes a moving tract.</h2>
-      <p>Fit the entire example recording, then play it back or scrub through time to see how the inferred areas change. SwiftF0 tracks the pitch; gradient descent adjusts a sequence of tract shapes. All analysis and optimization happen in your browser.</p>
 
-      <div class="lab speech-lab" id="speech-lab">
-        <div class="lab-heading"><span class="lab-label">Whole-speech fitting</span><span class="engine-state" id="speech-engine">Ready to fit</span></div>
-        <div class="lab-body">
-          <p class="speech-caption" id="speech-caption">Example · “On November 8, 1963”</p>
-          <div class="speech-actions"><button id="speech-fit" class="button button-primary" type="button">Fit entire speech sample →</button><button id="speech-cancel" class="button button-quiet" type="button" hidden>Stop fitting</button><button id="speech-example" class="button button-quiet" type="button" hidden>Use example</button></div>
-          <label class="speech-file-label" for="speech-file">Or choose your own recording <input id="speech-file" type="file" accept="audio/*,.wav,.mp3,.m4a,.ogg,.flac,.webm" aria-describedby="speech-file-help"></label>
-          <p class="pitch-help" id="speech-file-help">One voice, up to 10 seconds / 20 MB. Your audio stays on this device.</p>
-          <div class="speech-progress"><progress id="speech-progress" value="0" max="32" aria-label="Speech fitting progress"></progress><p id="speech-status" role="status" aria-live="polite">Start fitting to reconstruct an area trajectory for the complete clip.</p></div>
-          <div class="speech-metrics"><div><span>Pass</span><output id="speech-step">0 / 32</output></div><div><span>Fit objective</span><output id="speech-loss">—</output></div><div><span>Elapsed</span><output id="speech-elapsed">0.0 s</output></div></div>
-          <div class="plot-heading"><h3>Area along the tract</h3><output class="speech-time" id="speech-time" aria-live="off">0.00 s</output></div>
-          <svg id="speech-shape" viewBox="0 0 760 200" role="img" aria-labelledby="speech-shape-title speech-shape-description"><title id="speech-shape-title">Vocal tract areas at the selected time</title><desc id="speech-shape-description">The horizontal axis runs from the glottis to the lips. Height shows cross-sectional area in square centimeters.</desc></svg>
-          <div class="speech-frame-info"><span id="speech-frame-label">No fitted frames yet</span><span id="speech-frame-pitch">Pitch —</span></div>
-          <div class="plot-heading speech-map-heading"><h3>Area over the whole recording</h3><span class="speech-map-key"><i></i> Small → large</span></div>
-          <canvas id="speech-map" width="760" height="240" role="img" aria-label="Heatmap of cross-sectional area over time. Glottis at the bottom, lips at the top. Darker teal means a larger area. Use the time slider to inspect a frame."></canvas>
-          <label class="speech-scrub-label" for="speech-scrub">Explore time <output id="speech-position" aria-live="off">0.00 / 0.00 s</output><input id="speech-scrub" type="range" min="0" max="1" step="0.001" value="0" disabled></label>
-          <p class="pitch-help" id="speech-map-help">Each column is a moment in the recording; each row is one of the 32 tract areas. Faded columns mark quiet frames. Click the map or drag the time slider.</p>
-          <div class="speech-audio-pair"><div><h3>Original · play to animate</h3><audio id="speech-original" controls preload="none" aria-label="Original recording with animated vocal tract areas" src="assets/speech-original.wav"></audio></div><div><h3>Browser reconstruction</h3><audio id="speech-reconstructed" controls preload="none" aria-label="Speech reconstructed from the fitted area trajectory" hidden></audio><p id="speech-audio-note" class="pitch-help">Available after fitting.</p></div></div>
-        </div>
-        <div class="lab-note"><strong>What is being fitted?</strong> A sequence of 32 areas along a fixed 17.5 cm tract is optimized against short-time spectral measurements, with smoothness across neighboring areas and frames. SwiftF0 supplies a fixed pitch contour. Voiced frames use a glottal source; unvoiced frames use a broadband approximation. Playback filters those sources through the moving tract and combines overlapping frames. This is a browser experiment, separate from the paper’s neural-field model and turbulence simulation. Quiet frames are constrained by their neighbors, and inferred areas are not a measurement of anatomy.</div>
-      </div>
+    <section id="tubes">
+      <h2>Acoustic Tubes</h2>
+      <p> Although the space of all possible speech sounds is large, the
+        vocal tract's geometry moves in relatively fewer
+        dimensions over time. We model the vocal tract as an acoustic tube, a one-dimensional tube whose cross-sectional
+        area varies along
+        its length. Changes in the tube's shape causes changes in its acoustic properties, allowing for the formation of
+        different vowels and consonants </p>
 
-      <details class="vowel-experiment"><summary>Explore the single-vowel experiment</summary>
-      <p>For a simpler view of the inverse problem, reshape one tube or fit it to a synthetic vowel target.</p>
+      <p>We find that simulation in the frequency domain enables parallel evaluation across frequencies and short-time
+        analysis windows, delivering a 70x speedup over time-domain wave solvers on an RTX 4090.
+        Frequency-domain synthesis also yields a significantly smoother optimization landscape for gradient descent.</p>
+
+
+      <p> Explore how different tube geometries produce different vowels below! We can fit the area of
+        the tube to a speech sample using gradient descent. The geometry is parameterized by a Multiplicative
+        Filter Network (MFN), a type of neural field. Neural fields, and neural networks more generally, implicitly
+        regularize
+        deformations across space and time, allowing gradient descent to recover smooth kinematic trajectories without
+        hand-crafted regularizers.
+      </p>
+
+
 
       <div class="lab" id="lab" aria-busy="true">
-        <div class="lab-heading"><span class="lab-label">Vocal tract laboratory</span><span class="engine-state" id="engine-state" role="status">Loading simulator…</span></div>
+        <div class="lab-heading"><span class="lab-label">Vowel Fitting · MFN Neural Field</span>
+          <span class="engine-state" id="engine-state" role="status">Loading WebGPU…</span>
+        </div>
         <div class="lab-body">
-          <fieldset class="target-picker"><legend>Choose a target vowel</legend><div class="target-options" id="target-options"></div></fieldset>
-          <div class="plot-heading"><h3>Cross-sectional area</h3><label class="check-label"><input type="checkbox" id="show-target"> Show target shape</label></div>
-          <div class="tube-interaction"><svg id="tube-plot" viewBox="0 0 760 190" role="img" aria-labelledby="tube-title tube-description"><title id="tube-title">Editable vocal tract area profile</title><desc id="tube-description">Use the section and area sliders below to edit the tube. Glottis is at the left and lips are at the right.</desc></svg></div>
-          <p class="plot-hint">Drag the upper outline to reshape the tube, or use the controls below.</p>
-          <div class="shape-controls">
-            <label>Section <output id="section-value" for="section">16 / 32</output><input id="section" type="range" min="1" max="32" value="16" step="1"></label>
-            <label>Area <output id="area-value" for="area">2.0 cm²</output><input id="area" type="range" min="0.12" max="16" value="2" step="0.01"></label>
-          </div>
-          <div class="sound-controls">
-            <label>Tract length <output id="length-value" for="tract-length">17.5 cm</output><input id="tract-length" type="range" min="12" max="22" value="17.5" step="0.5"></label>
-            <label>Source pitch <output id="pitch-value" for="pitch">120 Hz</output><input id="pitch" type="range" min="65" max="500" value="120" step="1"></label>
-          </div>
-          <div class="listen-actions"><button id="listen-current" class="button" disabled><span aria-hidden="true">▷</span> Listen to current</button><button id="listen-target" class="button button-quiet" disabled><span aria-hidden="true">▷</span> Listen to target</button></div>
-          <details class="pitch-estimator" id="pitch-estimator">
-            <summary>Estimate source pitch from a recording <span>SwiftF0 · runs locally</span></summary>
-            <p class="pitch-intro">Pitch comes from vocal-fold vibration; the tract shapes its resonances. Estimate the fundamental frequency (<i>F</i>₀) of a single voice, then hear a vowel at the recording’s median voiced pitch.</p>
-            <div class="pitch-actions"><button id="pitch-example" class="button" type="button">Analyze example speech</button><label class="pitch-file-label" for="pitch-file">Or choose audio <input id="pitch-file" type="file" accept="audio/*,.wav,.mp3,.m4a,.ogg,.flac,.webm" aria-describedby="pitch-file-help"></label><button id="pitch-cancel" class="button button-quiet" type="button" hidden>Cancel</button></div>
-            <p class="pitch-help" id="pitch-file-help">Up to 30 seconds / 20 MB. Audio stays on your device. The model loads on first use.</p>
-            <p id="pitch-status" class="pitch-status" role="status" aria-live="polite">Use a clear recording of one speaking or singing voice.</p>
-            <div id="pitch-result" hidden>
-              <div class="pitch-metrics"><div><span>Median voiced pitch</span><output id="estimated-pitch">—</output></div><div><span>Voiced frames</span><output id="voiced-fraction">—</output></div></div>
-              <svg id="pitch-plot" viewBox="0 0 760 190" role="img" aria-labelledby="pitch-title pitch-description"><title id="pitch-title">Estimated fundamental frequency over time</title><desc id="pitch-description">Only confident voiced frames are shown. Gaps indicate silence or unvoiced frames.</desc></svg>
-              <audio id="pitch-preview" controls preload="none" aria-label="Recording used for pitch estimation"></audio>
-              <p class="pitch-help">SwiftF0 v0.3.0 analyzes 16 kHz mono audio every 16 ms. Shown frames have confidence ≥ 0.5 and pass a silence gate. The median sets a constant source pitch; the spectral fitting experiment still uses the selected vowel target. <a href="https://github.com/lars76/swift-f0" target="_blank" rel="noopener">About SwiftF0 ↗</a></p>
+          <div class="lab-compact-header">
+            <fieldset class="target-picker">
+              <legend class="sr-only">Choose a target vowel</legend>
+              <div class="target-options" id="target-options"></div>
+            </fieldset>
+            <div class="lab-actions-row">
+              <label class="check-label" title="Fant vowel profile used as the ground-truth target"><input
+                  type="checkbox" id="show-target" checked><i class="legend-line target" aria-hidden="true"></i> Ground
+                truth</label>
+              <button id="listen-current" class="button" disabled><span aria-hidden="true">▷</span> Shape</button>
+              <button id="listen-target" class="button button-quiet" disabled><span aria-hidden="true">▷</span>
+                Vowel</button>
+              <button id="fit" class="button button-primary" disabled>Fit target →</button>
+              <button id="reset" class="button button-quiet" disabled>Reset</button>
             </div>
-          </details>
-          <div class="plot-heading spectrum-heading"><h3>Acoustic response</h3><div class="plot-legend"><span><i class="legend-line current"></i>Current</span><span><i class="legend-line target"></i>Target</span></div></div>
-          <svg id="spectrum-plot" viewBox="0 0 760 235" role="img" aria-label="Acoustic transfer function from 80 to 5000 hertz, comparing the current tube with the target"></svg>
-          <div class="fit-panel">
-            <div class="fit-actions"><button id="fit" class="button button-primary" disabled>Fit to target <span aria-hidden="true">→</span></button><button id="reset" class="button button-quiet" disabled>Reset tube</button></div>
-            <div class="fit-metrics"><div><span>Step</span><output id="fit-step">0</output></div><div><span>Spectral loss</span><output id="fit-loss">—</output></div><div><span>Elapsed</span><output id="fit-time">0.0 s</output></div></div>
-            <svg id="loss-plot" viewBox="0 0 760 110" role="img" aria-label="Optimization loss by iteration"><text x="10" y="53" class="plot-empty">Start fitting to watch the loss change.</text></svg>
-            <p class="fit-status" id="fit-status" role="status" aria-live="polite">Choose a target, then start fitting from a neutral tube.</p>
+          </div>
+
+          <div class="lab-two-col">
+            <div class="lab-col">
+              <div class="plot-heading">
+                <h3>Vocal Tract Shape</h3><span class="plot-hint" style="margin:0">Drag either outline to
+                  edit</span>
+              </div>
+              <div class="tube-interaction"><svg id="tube-plot" viewBox="0 0 760 235" role="img"
+                  aria-labelledby="tube-title tube-description">
+                  <title id="tube-title">Editable vocal tract tube</title>
+                  <desc id="tube-description">Mirrored tube radii. Drag either outline or use sliders. Glottis at left,
+                    lips at right.
+                  </desc>
+                </svg></div>
+              <div class="shape-controls-compact">
+                <label>Section <output id="section-value" for="section">16 / 32</output><input id="section" type="range"
+                    min="1" max="32" value="16" step="1"></label>
+                <label>Area <output id="area-value" for="area">2.0 cm²</output><input id="area" type="range" min="0.12"
+                    max="16" value="2" step="0.01"></label>
+                <label>Tract length <output id="length-value" for="tract-length">17.5 cm</output><input
+                    id="tract-length" type="range" min="12" max="22" value="17.5" step="0.5"></label>
+                <label>Source pitch <output id="pitch-value" for="pitch">120 Hz</output><input id="pitch" type="range"
+                    min="65" max="500" value="120" step="1"></label>
+              </div>
+            </div>
+
+            <div class="lab-col">
+              <div class="plot-heading spectrum-heading">
+                <h3>Frequency Response</h3>
+                <div class="plot-legend"><span><i class="legend-line current"></i>Current</span><span><i
+                      class="legend-line target"></i>Target</span></div>
+              </div>
+              <svg id="spectrum-plot" viewBox="0 0 760 235" role="img"
+                aria-label="Acoustic transfer function from 80 to 5000 Hz"></svg>
+              <div class="fit-panel-compact">
+                <div class="fit-metrics">
+                  <div><span>Step</span><output id="fit-step">0</output></div>
+                  <div><span>Loss</span><output id="fit-loss">—</output></div>
+                  <div><span>Time</span><output id="fit-time">0.0 s</output></div>
+                </div>
+                <p class="fit-status" id="fit-status" role="status" aria-live="polite">Choose a target vowel, then click
+                  fit.</p>
+              </div>
+            </div>
+          </div>
+
+          <div hidden>
+            <svg id="loss-plot" viewBox="0 0 760 110"><text x="10" y="53" class="plot-empty"></text></svg>
+            <details class="pitch-estimator" id="pitch-estimator">
+              <summary>Estimate pitch</summary>
+              <button id="pitch-example" type="button"></button>
+              <input id="pitch-file" type="file">
+              <span id="pitch-file-help"></span>
+              <button id="pitch-cancel" type="button"></button>
+              <p id="pitch-status"></p>
+              <div id="pitch-result">
+                <output id="estimated-pitch"></output>
+                <output id="voiced-fraction"></output>
+                <svg id="pitch-plot">
+                  <title id="pitch-title"></title>
+                  <desc id="pitch-description"></desc>
+                </svg>
+                <audio id="pitch-preview"></audio>
+              </div>
+            </details>
           </div>
         </div>
-        <div class="lab-note"><strong>What this experiment shows.</strong> A stationary, voiced subset of the current transmission-line model, running in Rust/WebAssembly: 32 area values, with the final value defining the lip boundary. Fitting uses reverse-mode derivatives of a log-magnitude spectral loss and Adam updates to the log areas. Targets are synthesized from resampled Fant vowel area functions. This demo omits turbulence, time-varying speech, and the neural-field parameterization used in the paper.</div>
       </div>
-      <aside class="observation"><strong>Try this:</strong> reveal the target shape after fitting. A close match in sound does not guarantee a unique match in geometry. This ambiguity is part of the inverse problem, not something a small reconstruction error removes.</aside>
-      </details>
+
     </section>
 
-    <section id="parameterization">
-      <p class="section-number">03 / Solving the inverse problem</p>
-      <h2>Gradients are only part of the story</h2>
-      <p>Even with a differentiable simulator, reconstructing the tract is non-convex. Optimizing each area independently can stall: neighboring sections receive conflicting updates and the shape oscillates around its initialization.</p>
-      <p>Instead, we parameterize the moving area function with a neural field, <span class="inline-math">A = F<sub>θ</sub>(x, t)</span>. Shared weights couple different positions and times, giving the optimizer a useful way to coordinate changes across the tract. In the paper’s vowel experiments, neural fields recover the broad morphology and align the formants more accurately than a discrete representation.</p>
-      <figure class="paper-figure"><a href="assets/neural-field-comparison.png" class="figure-link" aria-label="Open the neural field comparison figure"><img src="assets/neural-field-comparison.png" loading="lazy" alt="Paper comparison of directly optimized vocal tract areas and neural field representations, including reconstructed geometry and acoustic responses."></a><figcaption><span class="figure-number">Representation matters.</span> The paper compares discrete areas with random Fourier feature and multiplicative filter networks. Both geometry and the resulting formants matter when evaluating a reconstruction.</figcaption></figure>
-    </section>
+    <section id="inverse-synthesis">
+      <h2>Real Speech Optimization WebGPU Demo</h2>
+      <p>Below we provide a web demo where you can fit your own speech samples with our simulator! Both the forward and
+        backward pass of our simulator are implemented in WebGPU. The code was ported from our <a
+          href="https://github.com/echen01/diffTLM">Python implementation</a> with the help of coding agents. </p>
 
-    <section id="results">
-      <p class="section-number">04 / Beyond a single vowel</p>
-      <h2>Speech becomes a sequence of shapes</h2>
-      <p>A self-supervised encoder maps recorded speech to a time-varying area function. The simulator decodes those areas back to audio. Training uses the recording itself as the target, without paired ground-truth vocal tract shapes.</p>
-      <figure class="media-figure" id="autoencoding-demo">
-        <div class="media-heading"><span class="lab-label">Speech → areas → speech</span><span class="media-source">From the supplementary material</span></div>
-        <div class="media-pair">
-          <div><h3>Original recording</h3><audio controls preload="none" id="autoencoding-original" aria-label="Original speech recording"><source src="assets/speech-original.wav" type="audio/wav"></audio><p class="transcript">“On November 8, 1963”</p></div>
-          <div><h3>Reconstructed speech + areas</h3><video controls playsinline preload="none" id="autoencoding-video" aria-label="Reconstructed speech and vocal tract areas" poster="assets/speech-reconstruction-poster.jpg"><source src="assets/speech-reconstruction.mp4" type="video/mp4"></video></div>
+      <p>If the demo doesn't work, try using Chrome, which we found can be 2x faster than Firefox or Safari.
+      </p>
+
+      <div id="playground"></div>
+      <div class="lab speech-lab" id="speech-lab">
+        <div class="lab-heading"><span class="lab-label" id="speech-field-label">Neural-Field Speech Fitting</span><span
+            class="engine-state" id="speech-engine">Ready to fit</span></div>
+        <div class="lab-body">
+          <div class="speech-lab-top">
+            <div class="speech-actions">
+              <button id="speech-fit" class="button button-primary" type="button">Fit speech recording →</button>
+              <button id="speech-cancel" class="button button-quiet" type="button" hidden>Stop fitting</button>
+              <button id="speech-example" class="button button-quiet" type="button" hidden>Use example</button>
+              <span class="speech-caption" id="speech-caption" style="margin:0 0 0 6px">Example · “On November 8,
+                1963”</span>
+              <label class="button button-quiet" style="margin:0;cursor:pointer" for="speech-file">Upload audio<input
+                  id="speech-file" type="file" accept="audio/*,.wav,.mp3,.m4a,.ogg,.flac,.webm"
+                  style="display:none"></label>
+              <button id="speech-record" class="button button-quiet" type="button"
+                aria-describedby="speech-record-status">Record audio</button>
+            </div>
+
+            <div class="speech-recording" id="speech-recording" role="group" aria-label="Record your own audio">
+              <div class="speech-record-actions">
+                <button id="speech-record-stop" class="button" type="button" hidden>Stop recording</button>
+                <button id="speech-record-cancel" class="button button-quiet" type="button" hidden>Discard</button>
+                <output id="speech-record-time" aria-label="Recording time" aria-live="off" hidden>0.0 / 10 s</output>
+              </div>
+              <p id="speech-record-status" class="pitch-help" role="status" aria-live="polite">Record up to 10 seconds,
+                then listen before fitting. Audio stays in your browser.</p>
+              <audio id="speech-recording-preview" controls preload="metadata" aria-label="Your recorded audio"
+                hidden></audio>
+            </div>
+
+            <details class="speech-advanced">
+              <summary>Optimization &amp; model options</summary>
+              <div class="speech-advanced-grid">
+                <label class="backend-choice" for="speech-backend">Compute <select id="speech-backend">
+                    <option value="fullgpu">GPU</option>
+                    <option value="cpu">CPU</option>
+                  </select></label>
+                <label class="backend-choice" for="speech-field-type">Neural field <select id="speech-field-type">
+                    <option value="rff">RFF</option>
+                    <option value="mfn" selected>MFN</option>
+                  </select></label>
+                <label class="backend-choice" id="speech-hidden-dim-label" for="speech-hidden-dim">Layer width <select
+                    id="speech-hidden-dim">
+                    <option value="128">128</option>
+                    <option value="256" selected>256 (default)</option>
+                    <option value="512">512</option>
+                  </select></label>
+                <label class="backend-choice" id="speech-mfn-scale-label" for="speech-mfn-scale" hidden>MFN scale
+                  <select id="speech-mfn-scale">
+                    <option value="32" selected>32</option>
+                    <option value="64">64</option>
+                    <option value="128">128</option>
+                    <option value="256">256</option>
+                  </select></label>
+                <label class="backend-choice" for="speech-iterations">Iterations <input id="speech-iterations"
+                    type="number" min="1" max="500" step="1" value="100"></label>
+              </div>
+            </details>
+
+            <div class="speech-progress"><progress id="speech-progress" value="0" max="100"
+                aria-label="Speech fitting progress"></progress>
+              <p id="speech-status" role="status" aria-live="polite">Fit the waveform to estimate moving vocal tract
+                geometry.</p>
+            </div>
+            <div class="speech-metrics speech-metrics-compact">
+              <div><span>Step</span><output id="speech-step">0 / 100</output></div>
+              <div><span>Loss</span><output id="speech-loss">—</output></div>
+              <div><span>Elapsed</span><output id="speech-elapsed">0.0 s</output></div>
+              <div><span>Speed</span><output id="speech-speed">—</output></div>
+            </div>
+          </div>
+
+          <div class="lab-two-col">
+            <div class="lab-col">
+              <div class="plot-heading">
+                <h3>Tract Profile</h3><output class="speech-time" id="speech-time" aria-live="off">0.00 s</output>
+              </div>
+              <svg id="speech-shape" viewBox="0 0 760 235" role="img"
+                aria-labelledby="speech-shape-title speech-shape-description">
+                <title id="speech-shape-title">Vocal tract radii</title>
+                <desc id="speech-shape-description">Centerline tract radius.</desc>
+              </svg>
+              <div class="speech-frame-info"><span id="speech-frame-label">No fitted frames</span><span
+                  id="speech-frame-pitch">Pitch —</span></div>
+
+              <div class="plot-heading speech-map-heading">
+                <h3>Area Heatmap (Time)</h3><span class="speech-map-key"><i></i> Constriction → Open</span>
+              </div>
+              <canvas id="speech-map" width="760" height="240" role="img" aria-label="Area heatmap over time"></canvas>
+              <label class="speech-scrub-label" for="speech-scrub">Scrub <output id="speech-position"
+                  aria-live="off">0.00 / 0.00 s</output><input id="speech-scrub" type="range" min="0" max="1"
+                  step="0.001" value="0" disabled></label>
+
+              <div class="speech-audio-compact">
+                <div>
+                  <h4>Original Audio</h4><audio id="speech-original" controls preload="none"
+                    aria-label="Original recording" src="assets/speech-original.wav"></audio>
+                </div>
+                <div>
+                  <h4>Reconstruction</h4><audio id="speech-reconstructed" controls preload="none"
+                    aria-label="Speech reconstructed from fitted area trajectory" hidden></audio>
+                </div>
+              </div>
+            </div>
+
+            <div class="lab-col">
+              <div class="plot-heading">
+                <h3>Mel-STFT Loss</h3>
+              </div>
+              <svg id="speech-loss-plot" viewBox="0 0 760 130" role="img" aria-label="Fitting objective"></svg>
+
+              <figure class="speech-spectrograms" aria-labelledby="speech-spectrogram-title">
+                <div class="plot-heading">
+                  <h3 id="speech-spectrogram-title">Spectrogram Comparison</h3><span id="speech-spectrogram-status"
+                    class="speech-spectrogram-status">Ready</span>
+                </div>
+                <div class="speech-spectrogram-panel">
+                  <h4>Target</h4><canvas id="speech-target-spectrogram" width="760" height="200" role="img"
+                    aria-label="Target spectrogram"></canvas>
+                </div>
+                <div class="speech-spectrogram-panel">
+                  <h4>Reconstruction</h4><canvas id="speech-reconstructed-spectrogram" width="760" height="200"
+                    role="img" aria-label="Reconstructed spectrogram"></canvas>
+                </div>
+                <div class="speech-spectrogram-training" id="speech-spectrogram-training" hidden>
+                  <label for="speech-spectrogram-step">Step <output id="speech-spectrogram-step-label"
+                      aria-live="off">—</output></label>
+                  <input id="speech-spectrogram-step" type="range" min="0" max="0" step="1" value="0" disabled
+                    aria-describedby="speech-spectrogram-history-help">
+                  <label class="speech-spectrogram-follow"><input id="speech-spectrogram-follow" type="checkbox"
+                      checked> Follow</label>
+                  <p id="speech-spectrogram-history-help" class="pitch-help" style="display:none"></p>
+                </div>
+                <div class="speech-spectrogram-legend" aria-label="Fixed spectral scale"><span>−80 dB</span><i
+                    aria-hidden="true"></i><span>+20 dB</span></div>
+                <figcaption id="speech-spectrogram-note" style="display:none"></figcaption>
+              </figure>
+            </div>
+          </div>
+
+          <div hidden>
+            <p id="speech-file-help"></p>
+            <p id="speech-width-help"></p>
+            <p id="speech-mfn-scale-help"></p>
+            <p id="speech-iteration-help"></p>
+            <p id="speech-backend-note"></p>
+            <p id="speech-audio-note"></p>
+            <div class="rff-architecture">
+              <strong id="speech-architecture"></strong>
+              <span id="speech-architecture-kind"></span>
+              <span id="speech-parameter-count"></span>
+              <span id="speech-architecture-settings"></span>
+              <span id="speech-area-scale"></span>
+            </div>
+          </div>
         </div>
-        <figcaption>Listen for the reconstructed timbre while watching the changing area function. The paper evaluates intelligibility and speaker similarity on 200 test utterances per language across 11 languages.</figcaption>
-      </figure>
-      <details class="results-details"><summary>How is reconstruction evaluated?</summary><p>Word and character error rates are measured with Whisper; speaker similarity uses ECAPA-TDNN embeddings. The table below shows the paper’s English test-set results, including 95% confidence intervals. Lower error rates are better.</p><div class="table-scroll"><table><caption>English speech autoencoding · 200 test utterances</caption><thead><tr><th scope="col">Audio</th><th scope="col">Word error rate (%) ↓</th><th scope="col">Character error rate (%) ↓</th></tr></thead><tbody><tr><th scope="row">Original</th><td>3.91 ± 0.84</td><td>2.05 ± 0.70</td></tr><tr><th scope="row">TensorTract2</th><td>13.00 ± 1.82</td><td>7.37 ± 1.11</td></tr><tr class="our-result"><th scope="row">Ours</th><td>5.30 ± 0.94</td><td>2.82 ± 0.75</td></tr></tbody></table></div><p class="small">See the paper for all 11 languages and speaker-similarity metrics. The browser laboratory above is a separate illustrative experiment.</p></details>
-      <figure class="paper-figure compact-figure"><a href="assets/phoneme-umap.png" class="figure-link" aria-label="Open the phoneme representation figure"><img src="assets/phoneme-umap.png" loading="lazy" alt="UMAP visualization of learned vocal tract areas colored by phoneme, showing a continuous organization of speech sounds."></a><figcaption><span class="figure-number">A continuous articulation space.</span> Area functions learned without phonetic labels organize into a spectrum of phonemes when visualized with UMAP.</figcaption></figure>
+      </div>
 
-      <h2 class="subsection-title">Grounding an MRI generator in acoustics</h2>
-      <p>We can also put an image generator in front of the simulator. A pretrained MRI generator produces a candidate frame; differentiable segmentation extracts its area function; the simulator produces audio. The audio mismatch then updates the generator’s latent sequence.</p>
-      <p>This connects speech and MRI without paired speech–MRI training data. The MRI prior is still learned from real scans, and acoustic agreement does not uniquely identify a speaker’s anatomy.</p>
+      <figure class="media-figure" id="singing-demos">
+        <div class="media-heading"><span class="lab-label">Singing Reconstruction Samples</span></div>
+        <div class="media-pair">
+          <div>
+            <h3>Hey Jude · The Beatles</h3>
+            <video controls playsinline preload="none" id="hey-jude-video" width="1008" height="912"
+              aria-label="Hey Jude: reconstructed singing and inferred vocal tract" poster="assets/hey-jude-poster.jpg">
+              <source src="assets/hey-jude-reconstruction.mp4" type="video/mp4">
+              <a href="assets/hey-jude-reconstruction.mp4">Watch the Hey Jude reconstruction</a>.
+            </video>
+            <a class="media-source" href="https://www.youtube.com/watch?v=tmoil_ZEorg">Original recording ↗</a>
+          </div>
+          <div>
+            <h3>OMG · NewJeans</h3>
+            <video controls playsinline preload="none" id="newjeans-video" width="1008" height="912"
+              aria-label="OMG by NewJeans: reconstructed singing and inferred vocal tract"
+              poster="assets/newjeans-omg-poster.jpg">
+              <source src="assets/newjeans-omg-reconstruction.mp4" type="video/mp4">
+              <a href="assets/newjeans-omg-reconstruction.mp4">Watch the NewJeans reconstruction</a>.
+            </video>
+            <a class="media-source" href="https://www.youtube.com/watch?v=BH1o66wl8qE">Original recording ↗</a>
+          </div>
+        </div>
+        <figcaption>We fit some singing examples with a neural field.</figcaption>
+      </figure>
+
+      <h3 class="subsection-title">Generating Dynamic Vocal Tract MRI</h3>
+      <p>diffTLM can also interface with visual generative models. We differentiably extract the cross-sectional area of
+        the vocal tract from the generated video, then pass the geometry to our simulator to synthesize speech. Gradient
+        propagation through the simulator and the MRI generator fits the MRI to the target audio. </p>
       <figure class="media-figure" id="mri-demo">
-        <div class="media-heading"><span class="lab-label">Speech → MRI</span><span class="media-source">Reconstruction from the paper</span></div>
-        <div class="media-pair mri-pair"><div><h3>Reference MRI + audio</h3><video controls playsinline preload="none" aria-label="Reference MRI and audio" poster="assets/mri-reference-poster.jpg"><source src="assets/mri-reference.mp4" type="video/mp4"></video></div><div><h3>Reconstructed MRI + audio</h3><video controls playsinline preload="none" aria-label="Reconstructed MRI and audio" poster="assets/mri-prediction-poster.jpg"><source src="assets/mri-prediction.mp4" type="video/mp4"></video></div></div>
-        <figcaption>“The best place I’ve been to, as I was saying, is, uh, New York.” The reconstructed movement is constrained by the sound it synthesizes. These are inferred configurations, not a direct measurement of the speaker’s anatomy. Reference audio in the supplementary MRI comparison was denoised before evaluation.</figcaption>
+        <div class="media-heading"><span class="lab-label">Speech-to-MRI Reconstruction</span><span
+            class="media-source">Acoustically guided generative imaging</span></div>
+        <div class="media-pair mri-pair">
+          <div>
+            <h3>Reference MRI and Audio</h3><video controls playsinline preload="none"
+              aria-label="Reference MRI and audio" poster="assets/mri-reference-poster.jpg">
+              <source src="assets/mri-reference.mp4" type="video/mp4">
+            </video>
+          </div>
+          <div>
+            <h3>Reconstructed MRI and Audio</h3><video controls playsinline preload="none"
+              aria-label="Reconstructed MRI and audio" poster="assets/mri-prediction-poster.jpg">
+              <source src="assets/mri-prediction.mp4" type="video/mp4">
+            </video>
+          </div>
+        </div>
+        <figcaption>“The best place I’ve been to, as I was saying, is, uh, New York.”</figcaption>
       </figure>
-      <p class="more-results"><a href="https://people.csail.mit.edu/echen/vocal_recon/">Explore all supplementary results <span aria-hidden="true">↗</span></a><span>More languages, MRI comparisons, singing, and out-of-distribution sound.</span></p>
-    </section>
 
-    <section id="discussion">
-      <p class="section-number">05 / What this makes possible</p>
-      <h2>A physical connection between speech and geometry</h2>
-      <p>Differentiable simulation gives learning systems an acoustic constraint: a proposed shape must actually produce the desired sound. It also leaves room for useful priors—neural fields for coordinated geometry, speech encoders for generalization, and generative models for plausible images.</p>
-      <p>The resulting shapes are interpretable, but not uniquely determined. A tube is also a reduced model of three-dimensional anatomy, and this work does not explicitly reconstruct the nasal tract. These limits matter when interpreting a reconstruction and when considering applications in pronunciation feedback, language learning, or medical imaging.</p>
-    </section>
+      <h2 class="subsection-title">Acoustic Tubes as a Neural Representation</h2>
+      <div class="representation-summary">
+        <p>We also investigate how acoustic tubes can be used as a neural representation. We train an autoencoder on
+          LibriTTS to encode speech into area functions, which are decoded into speech using diffTLM. Because no paired
+          data is required between speech and vocal tract kinematics, the entire process is self-supervised. On the
+          right we project encoded area functions onto a 2D UMAP projection. We find that the area functions groups
+          similar phonemes together. Consonants such as /s/ and /k/ are clustered on the right, while vowels like /a/
+          are clustered on the left. </p>
 
-    <section id="citation" class="citation-section">
-      <h2>Citation</h2>
-      <div class="citation-heading"><span class="small">If you find this work useful:</span><button id="copy-citation" class="text-button">Copy BibTeX</button></div>
-      <pre><code id="bibtex">@inproceedings{Chen2026DiffTLM,
+        <figure class="paper-figure compact-figure">
+          <a href="assets/phoneme-umap.png" class="figure-link" aria-label="Open phoneme representation figure"><img
+              src="assets/phoneme-umap.png" width="1789" height="1800" loading="lazy"
+              alt="UMAP visualization of learned vocal tract areas colored by phoneme."></a>
+          <figcaption><span class="figure-number">UMAP Projection of Area Functions.</span> Even without training on
+            phoneme labels,
+            articulatory representations organize into
+            continuous
+            phonemic clusters.</figcaption>
+        </figure>
+      </div>
+
+      <p>Finally, we explore the space of vowels sampled from our MRI generator. We plot the first two formants
+        simulated from 1,000 generated MRIs, and observe that they form a convex hull, similar to the space of vowels in
+        the IPA chart. Our learned representations align well with the existing linguistics literature, and we hope that
+        this work will enable future work in language, sensorimotor control and more! </p>
+
+      <figure class="paper-figure" id="ipa-chart">
+        <a href="assets/formant-space.png" class="figure-link"
+          aria-label="Open IPA vowel chart and formant-space figure at full resolution"><img
+            src="assets/formant-space.png" width="1800" height="537" loading="lazy"
+            alt="IPA vowel chart arranged by tongue height and front-to-back position, an F1–F2 plot of 1,000 generated MRIs, and MRI examples conditioned on selected vowel formants."></a>
+        <figcaption><span class="figure-number">IPA Vowels and Formant Control.</span> We randomly generate 1,000 MRIs
+          from our GAN, then compute their formants with our simulator. The convex hull of formants resembles a
+          trapezoid
+          corresponding almost exactly to the IPA vowel chart. The anatomy of each generated MRI corresponds closely to
+          textbook illustrations of vowels from Fant.
+        </figcaption>
+      </figure>
+
+
+
+
+      <section id="citation" class="citation-section">
+        <h2>Citation</h2>
+        <div class="citation-heading"><span class="small">If you find this work useful:</span><button id="copy-citation"
+            class="text-button">Copy BibTeX</button></div>
+        <pre><code id="bibtex">@inproceedings{Chen2026DiffTLM,
   author = {Chen, Eric Ming and Lee, Jin Woo and Sitzmann, Vincent},
   title = {Reconstructing the Vocal Tract with
            Differentiable Acoustic Simulation},
   booktitle = {Advances in Neural Information Processing Systems},
   year = {2026}
 }</code></pre>
-      <p id="copy-status" class="sr-only" role="status"></p>
-    </section>
-    <footer><a href="https://echen01.github.io/">Eric Ming Chen</a><span>MIT Scene Representation Group · 2026</span><a href="#main">Back to top ↑</a></footer>
+        <p id="copy-status" class="sr-only" role="status"></p>
+      </section>
+      <footer><a href="https://echen01.github.io/">Eric Ming Chen</a><span>MIT Scene Representation Group ·
+          2026</span><a href="#main">Back to top ↑</a></footer>
   </main>
+  <script>
+    // Classic inline script for file:// fallback
+    if (location.protocol === 'file:') {
+      const previewUrl = 'http://127.0.0.1:8000/vocal-tract/#playground';
+      const fitButton = document.getElementById('speech-fit');
+      if (fitButton) {
+        fitButton.textContent = 'Open interactive preview →';
+        fitButton.addEventListener('click', () => location.assign(previewUrl));
+      }
+      const engine = document.getElementById('speech-engine');
+      if (engine) engine.textContent = 'Local file preview';
+      const previewLink = document.createElement('a');
+      previewLink.href = previewUrl;
+      previewLink.textContent = 'Open the local web preview to fit speech.';
+      const status = document.getElementById('speech-status');
+      if (status) {
+        status.replaceChildren('Interactive fitting cannot run from a file opened directly. ', previewLink);
+      }
+      for (const control of document.querySelectorAll('#speech-lab input, #speech-lab select')) control.disabled = true;
+    }
+  </script>
 </body>
+
 </html>

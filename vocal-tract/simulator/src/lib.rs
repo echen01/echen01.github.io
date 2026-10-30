@@ -61,6 +61,131 @@ pub fn transfer(areas: &[f64; N], length: f64, frequency: f64) -> Complex {
     zr/(k00-k10*zr)
 }
 
+// The scalar tape below is retained as an independent test oracle. Production
+// differentiation follows the complex 2x2 recurrence directly. For a real loss,
+// d log|H| = Re(dH/H), so no Wirtinger convention or conjugation is implicit.
+#[derive(Clone, Copy, Default)]
+struct Section { resistance: f64, inductance: f64, wall_area: f64, capacitance: f64 }
+struct Geometry { sections: [Section; N-1], lip_r: f64, lip_l: f64 }
+impl Geometry {
+    fn new(areas: &[f64; N], length: f64) -> Self {
+        let li = length / N as f64;
+        let sections = std::array::from_fn(|i| {
+            let a = areas[i];
+            let sa = 2.0 * (PI * a).sqrt() * li;
+            Section {
+                resistance: sa / (2.0 * a * a) * (RHO * MU * 0.5).sqrt(),
+                inductance: RHO * li / (2.0 * a),
+                wall_area: sa,
+                capacitance: a * li / (RHO * C * C),
+            }
+        });
+        let a = areas[N-1];
+        Self { sections, lip_r: 128.0*RHO*C/(9.0*PI*PI*a),
+            lip_l: 8.0*RHO/(3.0*PI*(PI*a).sqrt()) }
+    }
+
+    fn log_transfer_gradient(&self, frequency: f64) -> (f64, [f64; N]) {
+        // k_i = M_i k_(i-1); save only each section's 2x2 matrix,
+        // its local log-area derivative, and the entering two-vector.
+        #[derive(Clone, Copy, Default)]
+        struct Step { a: Complex, b: Complex, c: Complex,
+            da: Complex, db: Complex, dc: Complex, k0: Complex, k1: Complex }
+        let mut steps = [Step::default(); N-1];
+        let omega = 2.0 * PI * frequency.max(1e-8);
+        let root_omega = omega.sqrt();
+        let one = Complex::new(1.0, 0.0);
+        let mut k0 = one;
+        let mut k1 = Complex::default();
+        for (i, section) in self.sections.iter().enumerate() {
+            let za = Complex::new(section.resistance * root_omega, omega * section.inductance);
+            let dza = Complex::new(-1.5 * za.re, -za.im);
+            // Parallel impedance: 1/Zb = 1/Zwall + 1/Zair.
+            // Wall admittance scales as sqrt(A), air admittance as A.
+            let yw = Complex::new(section.wall_area, 0.0)
+                / Complex::new(BW, omega*MW-KW/omega);
+            let ya = Complex::new(0.0, omega * section.capacitance);
+            let y = yw + ya;
+            let dy = yw * 0.5 + ya;
+            let a = one + za*y;
+            let b = -za*2.0 - za*za*y;
+            let c = -y;
+            let da = dza*y + za*dy;
+            let db = -dza*2.0 - za*dza*y*2.0 - za*za*dy;
+            let dc = -dy;
+            steps[i] = Step { a, b, c, da, db, dc, k0, k1 };
+            (k0, k1) = (a*k0+b*k1, c*k0+a*k1);
+        }
+        let q = omega * self.lip_l;
+        let radiation_den = Complex::new(self.lip_r, q);
+        let zr = Complex::new(0.0, self.lip_r*q) / radiation_den;
+        let dzr = (Complex::new(0.0, -1.5*self.lip_r*q)
+            - zr*Complex::new(-self.lip_r, -0.5*q)) / radiation_den;
+        let den = k0-k1*zr;
+        let h = zr/den;
+        let mut gradient = [0.0; N];
+        gradient[N-1] = ((one/zr + k1/den)*dzr).re;
+        // Row adjoint of log(H): [-1/D, Zr/D]. The real part at each
+        // local parameter gives its derivative of log magnitude.
+        let mut g0 = -one/den;
+        let mut g1 = zr/den;
+        for (i, step) in steps.iter().enumerate().rev() {
+            gradient[i] = (g0*(step.da*step.k0+step.db*step.k1)
+                + g1*(step.dc*step.k0+step.da*step.k1)).re;
+            (g0, g1) = (g0*step.a+g1*step.c, g0*step.b+g1*step.a);
+        }
+        (0.5*h.norm_sqr().ln(), gradient)
+    }
+}
+
+/// Mean squared log-magnitude loss and its reverse-mode gradient w.r.t. log A.
+/// The target is supplied in dB to share an API with the displayed spectrum.
+pub fn loss_and_gradient(areas: &[f64; N], target_db: &[f64], frequencies: &[f64], length: f64)
+    -> (f64, [f64; N]) {
+    assert_eq!(target_db.len(), frequencies.len());
+    let geometry = Geometry::new(areas, length);
+    let mut loss = 0.0;
+    let mut gradient = [0.0; N];
+    let scale = 1.0 / frequencies.len() as f64;
+    for (&frequency, &target) in frequencies.iter().zip(target_db) {
+        let (prediction, jacobian) = geometry.log_transfer_gradient(frequency);
+        let residual = prediction - target*std::f64::consts::LN_10/20.0;
+        loss += residual*residual*scale;
+        for i in 0..N { gradient[i] += 2.0*residual*scale*jacobian[i]; }
+    }
+    (loss, gradient)
+}
+
+/// Eliminate the optimal per-frame log gain in the same response/VJP pass.
+/// Welford's centered covariance accumulates mean(r^2)-mean(r)^2 and
+/// mean(r*J)-mean(r)*mean(J) without cancellation or a frequency-sized tape.
+pub fn gain_invariant_loss_and_gradient(areas: &[f64; N], target_db: &[f64], frequencies: &[f64], length: f64)
+    -> (f64, [f64; N], f64) {
+    assert_eq!(target_db.len(), frequencies.len());
+    let geometry = Geometry::new(areas, length);
+    let mut mean = 0.0;
+    let mut loss_sum = 0.0;
+    let mut jacobian_mean = [0.0; N];
+    let mut covariance = [0.0; N];
+    for (k, (&frequency, &target)) in frequencies.iter().zip(target_db).enumerate() {
+        let (prediction, jacobian) = geometry.log_transfer_gradient(frequency);
+        let residual = prediction - target*std::f64::consts::LN_10/20.0;
+        let delta = residual-mean;
+        let weight = 1.0 / (k+1) as f64;
+        mean += delta*weight;
+        loss_sum += delta*(residual-mean);
+        for i in 0..N {
+            jacobian_mean[i] += (jacobian[i]-jacobian_mean[i])*weight;
+            covariance[i] += delta*(jacobian[i]-jacobian_mean[i]);
+        }
+    }
+    let scale = 1.0 / frequencies.len() as f64;
+    (loss_sum*scale, covariance.map(|g| 2.0*scale*g), -mean*20.0/std::f64::consts::LN_10)
+}
+
+#[cfg(test)]
+mod reference_tape {
+    use super::*;
 // A small scalar reverse-mode tape. Complex arithmetic is decomposed into real
 // operations, so its backward pass obeys real multivariate calculus directly.
 type Var=usize;
@@ -135,7 +260,7 @@ fn log_transfer_with_tape(t:&mut Tape,inputs:&[Var;N],length:f64,frequency:f64)-
 
 /// Mean squared log-magnitude loss and its reverse-mode gradient w.r.t. log A.
 /// The target is supplied in dB to share an API with the displayed spectrum.
-pub fn loss_and_gradient(areas:&[f64;N],target_db:&[f64],frequencies:&[f64],length:f64)->(f64,[f64;N]) {
+pub(super) fn loss_and_gradient(areas:&[f64;N],target_db:&[f64],frequencies:&[f64],length:f64)->(f64,[f64;N]) {
     assert_eq!(target_db.len(),frequencies.len());
     let mut loss=0.0;let mut gradient=[0.0;N];let mut tape=Tape::new();
     let scale=1.0/frequencies.len() as f64;
@@ -151,6 +276,8 @@ pub fn loss_and_gradient(areas:&[f64;N],target_db:&[f64],frequencies:&[f64],leng
     (loss,gradient)
 }
 
+}
+
 // Fixed exchange buffers keep the browser boundary dependency-free. Each Worker
 // owns its own WebAssembly instance, and JS recreates views after memory growth.
 static mut AREAS:[f64;N]=[1.0;N];
@@ -160,6 +287,7 @@ static mut REAL:[f64;MAX_FREQ]=[0.0;MAX_FREQ];
 static mut IMAG:[f64;MAX_FREQ]=[0.0;MAX_FREQ];
 static mut DB:[f64;MAX_FREQ]=[0.0;MAX_FREQ];
 static mut GRADIENT:[f64;N]=[0.0;N];
+static mut GAIN_DB:f64=0.0;
 
 #[no_mangle] pub extern "C" fn areas_ptr()->*mut f64 {std::ptr::addr_of_mut!(AREAS).cast()}
 #[no_mangle] pub extern "C" fn frequencies_ptr()->*mut f64 {std::ptr::addr_of_mut!(FREQUENCIES).cast()}
@@ -168,6 +296,7 @@ static mut GRADIENT:[f64;N]=[0.0;N];
 #[no_mangle] pub extern "C" fn imag_ptr()->*mut f64 {std::ptr::addr_of_mut!(IMAG).cast()}
 #[no_mangle] pub extern "C" fn db_ptr()->*mut f64 {std::ptr::addr_of_mut!(DB).cast()}
 #[no_mangle] pub extern "C" fn gradient_ptr()->*mut f64 {std::ptr::addr_of_mut!(GRADIENT).cast()}
+#[no_mangle] pub extern "C" fn gain_db()->f64 {unsafe {GAIN_DB}}
 
 #[no_mangle] pub unsafe extern "C" fn evaluate_response(length:f64,n:usize)->i32 {
     if n==0||n>MAX_FREQ||!length.is_finite()||length<=0.0 {return -1;}
@@ -185,10 +314,62 @@ static mut GRADIENT:[f64;N]=[0.0;N];
     let (loss,gradient)=loss_and_gradient(&areas,target,frequencies,length);GRADIENT=gradient;loss
 }
 
+#[no_mangle] pub unsafe extern "C" fn evaluate_gain_invariant_loss(length:f64,n:usize)->f64 {
+    if n==0||n>MAX_FREQ||!length.is_finite()||length<=0.0 {return f64::NAN;}
+    let areas=AREAS;if areas.iter().any(|a| !a.is_finite()||*a<=0.0){return f64::NAN;}
+    let frequencies=std::slice::from_raw_parts(frequencies_ptr(),n);let target=std::slice::from_raw_parts(target_ptr(),n);
+    let (loss,gradient,gain)=gain_invariant_loss_and_gradient(&areas,target,frequencies,length);
+    GRADIENT=gradient;GAIN_DB=gain;loss
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     fn areas()->[f64;N] {std::array::from_fn(|i|1.8+0.7*(i as f64*0.37).sin())}
+    #[test] fn alternating_floor_and_cap_matches_finite_difference_at_high_frequency() {
+        // The original scalar tape underflows in derivative intermediates here;
+        // check against the forward objective, not that tape, at this extreme.
+        let a=std::array::from_fn(|i|if i%2==0 {0.0001} else {16.0});
+        let f=15999.0;
+        let (_,g)=loss_and_gradient(&a,&[0.0],&[f],17.5);
+        for i in 0..N {
+            let eps=1e-5;let mut ap=a;let mut am=a;ap[i]*=f64::exp(eps);am[i]*=f64::exp(-eps);
+            let vp=0.5*transfer(&ap,17.5,f).norm_sqr().ln();let vm=0.5*transfer(&am,17.5,f).norm_sqr().ln();
+            let numeric=(vp*vp-vm*vm)/(2.0*eps);
+            assert!((g[i]-numeric).abs()<2e-6*(1.0+numeric.abs()), "coordinate {i}: {} != {numeric}",g[i]);
+        }
+    }
+    #[test] fn analytic_adjoint_matches_original_scalar_tape() {
+        let frequencies=[0.0,1.0,80.0,503.0,1067.0,2331.0,4979.0,8000.0];
+        let target:Vec<_>=frequencies.iter().map(|&f|10.0*transfer(&areas(),17.5,f).norm_sqr().log10()).collect();
+        let geometries = [areas(), [0.0001;N], [0.12;N], [16.0;N], [100.0;N],
+            std::array::from_fn(|i|if i==31 {0.0001} else {3.0})];
+        for a in geometries {for length in [5.0,17.5,40.0] {
+            let (value,gradient)=loss_and_gradient(&a,&target,&frequencies,length);
+            let (reference,expected)=reference_tape::loss_and_gradient(&a,&target,&frequencies,length);
+            assert!((value-reference).abs() < 1e-10*(1.0+reference.abs()), "loss at length {length}");
+            for i in 0..N {assert!((gradient[i]-expected[i]).abs()<1e-9*(1.0+expected[i].abs()), "coordinate {i}, length {length}, areas {a:?}: {} != {}",gradient[i],expected[i]);}
+        }}
+    }
+    #[test] fn fused_gain_invariant_matches_old_two_pass_objective() {
+        let frequencies=[0.0,80.0,503.0,1067.0,2331.0,4979.0,8000.0];
+        let a=areas();
+        let target:Vec<_>=frequencies.iter().map(|&f|10.0*transfer(&[2.7;N],17.5,f).norm_sqr().log10()+31.0).collect();
+        let gain=frequencies.iter().zip(&target).map(|(&f,&y)| y-10.0*transfer(&a,17.5,f).norm_sqr().log10()).sum::<f64>()/frequencies.len() as f64;
+        let corrected:Vec<_>=target.iter().map(|&y|y-gain).collect();
+        let (expected,expected_gradient)=reference_tape::loss_and_gradient(&a,&corrected,&frequencies,17.5);
+        let (value,gradient,actual_gain)=gain_invariant_loss_and_gradient(&a,&target,&frequencies,17.5);
+        assert!((value-expected).abs()<1e-12);
+        assert!((gain-actual_gain).abs()<1e-12);
+        for i in 0..N {assert!((gradient[i]-expected_gradient[i]).abs()<1e-11);}
+        let shifted:Vec<_>=target.iter().map(|&y|y+200.0).collect();
+        let (shifted_loss,shifted_gradient,shifted_gain)=gain_invariant_loss_and_gradient(&a,&shifted,&frequencies,17.5);
+        assert!((shifted_loss-value).abs()<1e-12);
+        assert!((shifted_gain-actual_gain-200.0).abs()<1e-12);
+        for i in 0..N {assert!((gradient[i]-shifted_gradient[i]).abs()<1e-11);}
+        let (single,single_gradient,_)=gain_invariant_loss_and_gradient(&a,&[40.0],&[500.0],17.5);
+        assert_eq!(single,0.0);assert!(single_gradient.iter().all(|&g|g==0.0));
+    }
     #[test] fn reverse_gradient_matches_centered_finite_difference() {
         let a=areas();let target_a=[2.7;N];let frequencies=[80.0,203.0,503.0,1067.0,2331.0,3893.0,4979.0];
         let target:Vec<_>=frequencies.iter().map(|&f|10.0*transfer(&target_a,17.5,f).norm_sqr().log10()).collect();

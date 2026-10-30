@@ -1,3 +1,5 @@
+import {synthesizeLfVowel, vowelFrequencies} from './vowel-source.js';
+
 // Browser interface to the stationary diffTLM Rust/WASM model.
 export const NUM_AREAS = 32;
 export const FREQUENCIES = Array.from({length: 160}, (_, i) => 80 + i * (5000 - 80) / 159);
@@ -11,7 +13,7 @@ const resample = source => Array.from({length: NUM_AREAS}, (_, i) => {
 // values. The last value is the lip boundary, matching the current JAX model.
 export const PRESETS = [
   {id: 'a', name: 'Ah', label: 'ɑ / “ah”', length: 17.5, areas: resample([2.6,1.6,1.3,1,4,2.6,1.6,1,.65,.65,.65,1,1.3,1.6,2,2.6,2.6,1.6,3.2,4,5,6.5,8,8,8,8,8,8,8,8,6.5,5,5,5,5])},
-  {id: 'i', name: 'Ee', label: 'i / “ee”', length: 17.5, areas: resample([3.2,2.6,2,2,8,8,10.5,10.5,10.5,10.5,10.5,10.5,10.5,10.5,10.5,8,8,6.5,4,2.6,1.3,.65,.65,.65,.65,.65,.65,.65,1,1.3,1.6,3.2,4,4])},
+  {id: 'e', name: 'Ay', label: 'e / “ay”', length: 18, areas: resample([2.6,2,1.6,1.3,6.5,6.5,6.5,6.5,8,8,10.5,10.5,10.5,10.5,10.5,8,6.5,8,6.5,8,6.5,5,5,4,4,4,3.2,2.6,2.6,2,2.6,4,5,5,8,8])},
   {id: 'u', name: 'Oo', label: 'u / “oo”', length: 20, areas: resample([2.6,2.6,2,2,10.5,10.5,10.5,8,8,5,3.2,1.6,1.3,1,1,1,1.6,2,1.3,1.6,2,2,2,2.6,3.2,5,6.5,8,10.5,13,13,13,13,10.5,5,2,.32,.32,.65,.65])},
 ];
 
@@ -63,76 +65,26 @@ export async function createSimulator(wasmBytes) {
       if (!Number.isFinite(loss) || gradient.some(g => !Number.isFinite(g))) throw new Error('The optimizer encountered a nonfinite acoustic response. Reset to try again.');
       return {loss, gradient};
     },
+    gainInvariantLossAndGradient(areas, targetDb, length = 17.5, frequencies = FREQUENCIES) {
+      setup(areas, length, frequencies);
+      if (targetDb?.length !== frequencies.length || Array.from(targetDb).some(x => !Number.isFinite(x))) throw new Error('The target spectrum must have one finite value per frequency.');
+      view('target_ptr', frequencies.length).set(targetDb);
+      const loss = w.evaluate_gain_invariant_loss(length, frequencies.length);
+      const gradient = Array.from(view('gradient_ptr', NUM_AREAS));
+      const gainDb = w.gain_db();
+      if (!Number.isFinite(loss) || !Number.isFinite(gainDb) || gradient.some(g => !Number.isFinite(g))) throw new Error('The optimizer encountered a nonfinite acoustic response. Reset to try again.');
+      return {loss, gradient, gainDb};
+    },
     synthesize(areas, length = 17.5, f0 = 120, duration = .8) {
       checkAreas(areas); checkLength(length);
       if (!Number.isFinite(f0) || f0 < 65 || f0 > 500) throw new Error('Pitch must be between 65 and 500 Hz.');
       if (!Number.isFinite(duration) || duration <= 0 || duration > 5) throw new Error('Sound duration must be between 0 and 5 seconds.');
-      const sampleRate = 32000;
-      const count = Math.floor(sampleRate * duration);
-      const harmonics = Math.floor((sampleRate / 2 - 1) / f0);
-      const frequencies = Array.from({length: harmonics}, (_, i) => (i + 1) * f0);
+      const frequencies = vowelFrequencies(f0);
       const response = api.response(areas, length, frequencies);
-      const pulse = lfPulseCycle(2048);
-      const samples = new Float32Array(count);
-      for (let h = 1; h <= harmonics; h++) {
-        let re = 0, im = 0;
-        for (let i = 0; i < pulse.length; i++) {
-          const phase = 2 * Math.PI * h * i / pulse.length;
-          re += pulse[i] * Math.cos(phase) / pulse.length;
-          im -= pulse[i] * Math.sin(phase) / pulse.length;
-        }
-        const hr = response.real[h - 1], hi = response.imag[h - 1];
-        const pr = re * hr - im * hi, pi = re * hi + im * hr;
-        const angle = 2 * Math.PI * f0 * h / sampleRate;
-        const ca = Math.cos(angle), sa = Math.sin(angle);
-        let cos = 1, sin = 0;
-        for (let i = 0; i < count; i++) {
-          samples[i] += 2 * (pr * cos - pi * sin);
-          const nextCos = cos * ca - sin * sa;
-          sin = sin * ca + cos * sa;
-          cos = nextCos;
-        }
-      }
-      let peak = 0;
-      for (const sample of samples) peak = Math.max(peak, Math.abs(sample));
-      for (let i = 0; i < count; i++) {
-        const fade = Math.min(1, i / (sampleRate * .025), (count - i - 1) / (sampleRate * .04));
-        samples[i] *= .3 * Math.max(0, fade) / Math.max(peak, 1e-12);
-      }
-      return {samples, sampleRate};
+      return synthesizeLfVowel(response, f0, duration);
     },
   };
   return api;
-}
-
-// Liljencrants–Fant flow pulse, matching difftlm/glottis.py's OQ/SQ/TL.
-// The stationary demonstration uses a periodic source with no breath noise.
-function lfPulseCycle(count) {
-  const te = .5, tp = .375, ta = .02, w = Math.PI / tp;
-  let epsilon = 1 / ta;
-  for (let i = 0; i < 40; i++) {
-    const h = 1 - Math.exp(-epsilon * (1 - te)) - epsilon * ta;
-    if (Math.abs(h) < 1e-5) break;
-    epsilon -= h / ((1 - te) * Math.exp(-epsilon * (1 - te)) - ta);
-  }
-  const sw = Math.sin(w * te), cw = Math.cos(w * te);
-  const x = sw * Math.exp(epsilon * te) * (-Math.exp(-epsilon) / epsilon - Math.exp(-epsilon)) / (epsilon * ta);
-  const y = sw * Math.exp(epsilon * te) * (-Math.exp(-epsilon * te) / epsilon - te * Math.exp(-epsilon)) / (epsilon * ta);
-  const objective = a => w / (w * w + a * a) + Math.exp(a * te) * ((a * sw - w * cw) / (w * w + a * a) + x - y);
-  let lo = 0, hi = 0, alpha = 0;
-  for (let i = 0; i < 20; i++) { hi++; if (objective(hi) < 0) break; }
-  if (objective(hi) < 0) for (let i = 0; i < 20; i++) {
-    const flo = objective(lo), fhi = objective(hi);
-    alpha = lo - flo * (hi - lo) / (fhi - flo);
-    const f = objective(alpha);
-    if (Math.abs(f) <= 1e-5) break;
-    if (f < 0) hi = alpha; else lo = alpha;
-  }
-  const b = 1 / ((Math.exp(alpha * tp) * (alpha * Math.sin(w * tp) - w * Math.cos(w * tp)) + w) / (w * w + alpha * alpha));
-  const open = t => b * (Math.exp(alpha * t) * (alpha * Math.sin(w * t) - w * Math.cos(w * t)) + w) / (w * w + alpha * alpha);
-  const factor = b * Math.exp(alpha * te) * sw * Math.exp(epsilon * te) / (epsilon * ta);
-  const ret = t => factor * (-Math.exp(-epsilon * t) / epsilon - t * Math.exp(-epsilon));
-  return Array.from({length: count}, (_, i) => {const t = i / count; return t < te ? open(t) : open(te) + ret(t) - ret(te);});
 }
 
 // Shared by the Worker and numerical regression checks. Each returned loss is
