@@ -1,5 +1,6 @@
 :root{--paper:#faf9f6;--surface:#fff;--ink:#272b2b;--muted:#626b6b;--line:#dedfda;--accent:#146f68;--accent-light:#e7f1ed;--target:#b96537;--serif:Georgia,'Times New Roman',serif;--sans:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 #singing-demos video{height:auto;background:#fff}
+#tubes>.lab{margin-bottom:28px}
 .representation-summary{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,320px);gap:32px;align-items:start}
 .representation-summary>p{margin:0}
 .representation-summary>.compact-figure{width:100%;margin:0}

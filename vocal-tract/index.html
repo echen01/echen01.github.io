@@ -10,7 +10,7 @@
   <meta name="theme-color" content="#faf9f6">
   <link rel="icon" type="image/jpeg" sizes="84x84" href="assets/mri-reference-poster.jpg">
   <link rel="canonical" href="https://echen01.github.io/vocal-tract/">
-  <link rel="stylesheet" href="style.css?v=record-inline-1">
+  <link rel="stylesheet" href="style.css?v=demo-order-1">
   <script type="module" src="page.js?v=vowel-mfn-e-1"></script>
 </head>
 
@@ -56,139 +56,6 @@
         of
         latent vectors, reconstructing the MRI video from the target speech signal.</figcaption>
     </figure>
-    <section id="intro">
-      <h2>Motivation</h2>
-      <p>Learning to speak is an inverse problem. An infant babbles to discover the non-linear
-        mapping between their articulatory motor commands and their speech, learning the controls required
-        to produce language. Most remarkably, children solve this inverse problem without ever seeing paired
-        data between the muscle configuration of their vocal tract and the speech it produces.</p>
-
-      <p>In robotics, this type of sensorimotor learning is accelerated by differentiable simulators such as Mujoco MJX,
-        Taichi and Warp. These simulators allow gradients from a physical environment to backpropagate directly to a
-        policy,
-        enabling efficient learning of locomotion and manipulation. But to learn the physical actions of
-        your mouth, tongue, etc. that form language, no equivalent computational infrastructure exists. Our
-        differentiable simulator
-        provides the infrastructure to study speech as a physically-grounded learning problem. </p>
-    </section>
-
-
-    <section id="tubes">
-      <h2>Acoustic Tubes</h2>
-      <p> Although the space of all possible speech sounds is large, the
-        vocal tract's geometry moves in relatively fewer
-        dimensions over time. We model the vocal tract as an acoustic tube, a one-dimensional tube whose cross-sectional
-        area varies along
-        its length. Changes in the tube's shape causes changes in its acoustic properties, allowing for the formation of
-        different vowels and consonants </p>
-
-      <p>We find that simulation in the frequency domain enables parallel evaluation across frequencies and short-time
-        analysis windows, delivering a 70x speedup over time-domain wave solvers on an RTX 4090.
-        Frequency-domain synthesis also yields a significantly smoother optimization landscape for gradient descent.</p>
-
-
-      <p> Explore how different tube geometries produce different vowels below! We can fit the area of
-        the tube to a speech sample using gradient descent. The geometry is parameterized by a Multiplicative
-        Filter Network (MFN), a type of neural field. Neural fields, and neural networks more generally, implicitly
-        regularize
-        deformations across space and time, allowing gradient descent to recover smooth kinematic trajectories without
-        hand-crafted regularizers.
-      </p>
-
-
-
-      <div class="lab" id="lab" aria-busy="true">
-        <div class="lab-heading"><span class="lab-label">Vowel Fitting · MFN Neural Field</span>
-          <span class="engine-state" id="engine-state" role="status">Loading WebGPU…</span>
-        </div>
-        <div class="lab-body">
-          <div class="lab-compact-header">
-            <fieldset class="target-picker">
-              <legend class="sr-only">Choose a target vowel</legend>
-              <div class="target-options" id="target-options"></div>
-            </fieldset>
-            <div class="lab-actions-row">
-              <label class="check-label" title="Fant vowel profile used as the ground-truth target"><input
-                  type="checkbox" id="show-target" checked><i class="legend-line target" aria-hidden="true"></i> Ground
-                truth</label>
-              <button id="listen-current" class="button" disabled><span aria-hidden="true">▷</span> Shape</button>
-              <button id="listen-target" class="button button-quiet" disabled><span aria-hidden="true">▷</span>
-                Vowel</button>
-              <button id="fit" class="button button-primary" disabled>Fit target →</button>
-              <button id="reset" class="button button-quiet" disabled>Reset</button>
-            </div>
-          </div>
-
-          <div class="lab-two-col">
-            <div class="lab-col">
-              <div class="plot-heading">
-                <h3>Vocal Tract Shape</h3><span class="plot-hint" style="margin:0">Drag either outline to
-                  edit</span>
-              </div>
-              <div class="tube-interaction"><svg id="tube-plot" viewBox="0 0 760 235" role="img"
-                  aria-labelledby="tube-title tube-description">
-                  <title id="tube-title">Editable vocal tract tube</title>
-                  <desc id="tube-description">Mirrored tube radii. Drag either outline or use sliders. Glottis at left,
-                    lips at right.
-                  </desc>
-                </svg></div>
-              <div class="shape-controls-compact">
-                <label>Section <output id="section-value" for="section">16 / 32</output><input id="section" type="range"
-                    min="1" max="32" value="16" step="1"></label>
-                <label>Area <output id="area-value" for="area">2.0 cm²</output><input id="area" type="range" min="0.12"
-                    max="16" value="2" step="0.01"></label>
-                <label>Tract length <output id="length-value" for="tract-length">17.5 cm</output><input
-                    id="tract-length" type="range" min="12" max="22" value="17.5" step="0.5"></label>
-                <label>Source pitch <output id="pitch-value" for="pitch">120 Hz</output><input id="pitch" type="range"
-                    min="65" max="500" value="120" step="1"></label>
-              </div>
-            </div>
-
-            <div class="lab-col">
-              <div class="plot-heading spectrum-heading">
-                <h3>Frequency Response</h3>
-                <div class="plot-legend"><span><i class="legend-line current"></i>Current</span><span><i
-                      class="legend-line target"></i>Target</span></div>
-              </div>
-              <svg id="spectrum-plot" viewBox="0 0 760 235" role="img"
-                aria-label="Acoustic transfer function from 80 to 5000 Hz"></svg>
-              <div class="fit-panel-compact">
-                <div class="fit-metrics">
-                  <div><span>Step</span><output id="fit-step">0</output></div>
-                  <div><span>Loss</span><output id="fit-loss">—</output></div>
-                  <div><span>Time</span><output id="fit-time">0.0 s</output></div>
-                </div>
-                <p class="fit-status" id="fit-status" role="status" aria-live="polite">Choose a target vowel, then click
-                  fit.</p>
-              </div>
-            </div>
-          </div>
-
-          <div hidden>
-            <svg id="loss-plot" viewBox="0 0 760 110"><text x="10" y="53" class="plot-empty"></text></svg>
-            <details class="pitch-estimator" id="pitch-estimator">
-              <summary>Estimate pitch</summary>
-              <button id="pitch-example" type="button"></button>
-              <input id="pitch-file" type="file">
-              <span id="pitch-file-help"></span>
-              <button id="pitch-cancel" type="button"></button>
-              <p id="pitch-status"></p>
-              <div id="pitch-result">
-                <output id="estimated-pitch"></output>
-                <output id="voiced-fraction"></output>
-                <svg id="pitch-plot">
-                  <title id="pitch-title"></title>
-                  <desc id="pitch-description"></desc>
-                </svg>
-                <audio id="pitch-preview"></audio>
-              </div>
-            </details>
-          </div>
-        </div>
-      </div>
-
-    </section>
-
     <section id="inverse-synthesis">
       <h2>Real Speech Optimization WebGPU Demo</h2>
       <p>Below we provide a web demo where you can fit your own speech samples with our simulator! Both the forward and
@@ -356,6 +223,137 @@
           </div>
         </div>
       </div>
+    </section>
+
+    <section id="intro">
+      <h2>Motivation</h2>
+      <p>Learning to speak is an inverse problem. An infant babbles to discover the non-linear
+        mapping between their articulatory motor commands and their speech, learning the controls required
+        to produce language. Most remarkably, children solve this inverse problem without ever seeing paired
+        data between the muscle configuration of their vocal tract and the speech it produces.</p>
+
+      <p>In robotics, this type of sensorimotor learning is accelerated by differentiable simulators such as Mujoco MJX,
+        Taichi and Warp. These simulators allow gradients from a physical environment to backpropagate directly to a
+        policy,
+        enabling efficient learning of locomotion and manipulation. But to learn the physical actions of
+        your mouth, tongue, etc. that form language, no equivalent computational infrastructure exists. Our
+        differentiable simulator
+        provides the infrastructure to study speech as a physically-grounded learning problem. </p>
+    </section>
+
+
+    <section id="tubes">
+      <h2>Acoustic Tubes</h2>
+      <div class="lab" id="lab" aria-busy="true">
+        <div class="lab-heading"><span class="lab-label">Vowel Fitting · MFN Neural Field</span>
+          <span class="engine-state" id="engine-state" role="status">Loading WebGPU…</span>
+        </div>
+        <div class="lab-body">
+          <div class="lab-compact-header">
+            <fieldset class="target-picker">
+              <legend class="sr-only">Choose a target vowel</legend>
+              <div class="target-options" id="target-options"></div>
+            </fieldset>
+            <div class="lab-actions-row">
+              <label class="check-label" title="Fant vowel profile used as the ground-truth target"><input
+                  type="checkbox" id="show-target" checked><i class="legend-line target" aria-hidden="true"></i> Ground
+                truth</label>
+              <button id="listen-current" class="button" disabled><span aria-hidden="true">▷</span> Shape</button>
+              <button id="listen-target" class="button button-quiet" disabled><span aria-hidden="true">▷</span>
+                Vowel</button>
+              <button id="fit" class="button button-primary" disabled>Fit target →</button>
+              <button id="reset" class="button button-quiet" disabled>Reset</button>
+            </div>
+          </div>
+
+          <div class="lab-two-col">
+            <div class="lab-col">
+              <div class="plot-heading">
+                <h3>Vocal Tract Shape</h3><span class="plot-hint" style="margin:0">Drag either outline to
+                  edit</span>
+              </div>
+              <div class="tube-interaction"><svg id="tube-plot" viewBox="0 0 760 235" role="img"
+                  aria-labelledby="tube-title tube-description">
+                  <title id="tube-title">Editable vocal tract tube</title>
+                  <desc id="tube-description">Mirrored tube radii. Drag either outline or use sliders. Glottis at left,
+                    lips at right.
+                  </desc>
+                </svg></div>
+              <div class="shape-controls-compact">
+                <label>Section <output id="section-value" for="section">16 / 32</output><input id="section" type="range"
+                    min="1" max="32" value="16" step="1"></label>
+                <label>Area <output id="area-value" for="area">2.0 cm²</output><input id="area" type="range" min="0.12"
+                    max="16" value="2" step="0.01"></label>
+                <label>Tract length <output id="length-value" for="tract-length">17.5 cm</output><input
+                    id="tract-length" type="range" min="12" max="22" value="17.5" step="0.5"></label>
+                <label>Source pitch <output id="pitch-value" for="pitch">120 Hz</output><input id="pitch" type="range"
+                    min="65" max="500" value="120" step="1"></label>
+              </div>
+            </div>
+
+            <div class="lab-col">
+              <div class="plot-heading spectrum-heading">
+                <h3>Frequency Response</h3>
+                <div class="plot-legend"><span><i class="legend-line current"></i>Current</span><span><i
+                      class="legend-line target"></i>Target</span></div>
+              </div>
+              <svg id="spectrum-plot" viewBox="0 0 760 235" role="img"
+                aria-label="Acoustic transfer function from 80 to 5000 Hz"></svg>
+              <div class="fit-panel-compact">
+                <div class="fit-metrics">
+                  <div><span>Step</span><output id="fit-step">0</output></div>
+                  <div><span>Loss</span><output id="fit-loss">—</output></div>
+                  <div><span>Time</span><output id="fit-time">0.0 s</output></div>
+                </div>
+                <p class="fit-status" id="fit-status" role="status" aria-live="polite">Choose a target vowel, then click
+                  fit.</p>
+              </div>
+            </div>
+          </div>
+
+          <div hidden>
+            <svg id="loss-plot" viewBox="0 0 760 110"><text x="10" y="53" class="plot-empty"></text></svg>
+            <details class="pitch-estimator" id="pitch-estimator">
+              <summary>Estimate pitch</summary>
+              <button id="pitch-example" type="button"></button>
+              <input id="pitch-file" type="file">
+              <span id="pitch-file-help"></span>
+              <button id="pitch-cancel" type="button"></button>
+              <p id="pitch-status"></p>
+              <div id="pitch-result">
+                <output id="estimated-pitch"></output>
+                <output id="voiced-fraction"></output>
+                <svg id="pitch-plot">
+                  <title id="pitch-title"></title>
+                  <desc id="pitch-description"></desc>
+                </svg>
+                <audio id="pitch-preview"></audio>
+              </div>
+            </details>
+          </div>
+        </div>
+      </div>
+
+      <p> Although the space of all possible speech sounds is large, the
+        vocal tract's geometry moves in relatively fewer
+        dimensions over time. We model the vocal tract as an acoustic tube, a one-dimensional tube whose cross-sectional
+        area varies along
+        its length. Changes in the tube's shape causes changes in its acoustic properties, allowing for the formation of
+        different vowels and consonants </p>
+
+      <p>We find that simulation in the frequency domain enables parallel evaluation across frequencies and short-time
+        analysis windows, delivering a 70x speedup over time-domain wave solvers on an RTX 4090.
+        Frequency-domain synthesis also yields a significantly smoother optimization landscape for gradient descent.</p>
+
+      <p> Explore how different tube geometries produce different vowels above! We can fit the area of
+        the tube to a speech sample using gradient descent. The geometry is parameterized by a Multiplicative
+        Filter Network (MFN), a type of neural field. Neural fields, and neural networks more generally, implicitly
+        regularize
+        deformations across space and time, allowing gradient descent to recover smooth kinematic trajectories without
+        hand-crafted regularizers.
+      </p>
+
+    </section>
 
       <figure class="media-figure" id="singing-demos">
         <div class="media-heading"><span class="lab-label">Singing Reconstruction Samples</span></div>
