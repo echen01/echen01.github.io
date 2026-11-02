@@ -1,0 +1,2027 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+  <title>
+   Reconstructing the Vocal Tract with Differentiable Acoustic Simulation
+  </title>
+  <style>
+   :root {
+            color-scheme: light;
+            --text: #302f2b;
+            --muted: #64635e;
+            --rule: #e5e4df;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            -webkit-text-size-adjust: 100%;
+        }
+
+        body {
+            margin: 0;
+            color: var(--text);
+            background: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .page {
+            width: min(100% - 64px, 1120px);
+            margin: 48px auto 80px;
+        }
+
+        header {
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--rule);
+            margin-bottom: 32px;
+        }
+
+        h1, h2, h3 {
+            line-height: 1.25;
+            letter-spacing: -0.02em;
+            text-wrap: balance;
+        }
+
+        .page-title {
+            max-width: 1000px;
+            margin: 0;
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            font-weight: 700;
+        }
+
+        .page-subtitle {
+            margin: 16px 0 0;
+            color: var(--muted);
+            font-size: 1.125rem;
+        }
+
+        h2 {
+            margin: 48px 0 12px;
+            padding-top: 28px;
+            border-top: 1px solid var(--rule);
+            font-size: 1.5rem;
+            font-weight: 650;
+        }
+
+        .page-body > h2:first-child {
+            margin-top: 0;
+            padding-top: 0;
+            border-top: 0;
+        }
+
+        h3 {
+            margin: 0;
+            font-size: 1.0625rem;
+            font-weight: 650;
+        }
+
+        p {
+            margin: 0 0 12px;
+        }
+
+        strong {
+            font-weight: 600;
+        }
+
+        a {
+            color: #245e91;
+            overflow-wrap: anywhere;
+            text-underline-offset: 3px;
+        }
+
+        a:hover {
+            color: #163f64;
+        }
+
+        :focus-visible {
+            outline: 3px solid #245e91;
+            outline-offset: 4px;
+        }
+
+        hr {
+            height: 0;
+            margin: 28px 0;
+            border: 0;
+            border-top: 1px solid var(--rule);
+        }
+
+        .column-list {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            align-items: start;
+            gap: 24px;
+            margin: 24px 0;
+        }
+
+        .column {
+            min-width: 0;
+        }
+
+        .column > :last-child {
+            margin-bottom: 0;
+        }
+
+        /* Media fill their columns; no padded boxes around native players. */
+        figure {
+            min-width: 0;
+            margin: 0;
+            break-inside: avoid;
+        }
+
+        audio, video {
+            display: block;
+            width: 100%;
+            max-width: 100%;
+        }
+
+        audio {
+            height: 54px;
+        }
+
+        video {
+            height: auto;
+            border-radius: 4px;
+            background: #f4f4f2;
+        }
+
+        .media-label {
+            margin: 0 0 10px;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            font-weight: 600;
+        }
+
+        .autoencoding-grid {
+            column-gap: 32px;
+        }
+
+        .autoencoding-example {
+            display: grid;
+            gap: 16px;
+            min-width: 0;
+        }
+
+        .sample-transcript {
+            min-height: 3.2em;
+            margin: -8px 0 0;
+            color: var(--muted);
+        }
+
+        .video-example {
+            grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+            gap: 32px;
+            margin: 28px 0 36px;
+        }
+
+        .video-example audio {
+            margin: 16px 0;
+        }
+
+        /* Full-width transcripts keep long passages readable above the players. */
+        .comparison-row {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px 24px;
+        }
+
+        .transcript {
+            grid-column: 1 / -1;
+        }
+
+        .translation {
+            color: var(--muted);
+        }
+
+        .comparison-row .media-label {
+            min-height: 3em;
+        }
+
+        .audio-comparison .media-label {
+            min-height: 0;
+        }
+
+        @media (max-width: 840px) {
+            .page {
+                width: calc(100% - 40px);
+                margin: 32px auto 48px;
+            }
+
+            .column-list {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 24px;
+            }
+
+            .autoencoding-grid {
+                gap: 32px;
+            }
+
+            .autoencoding-example + .autoencoding-example {
+                padding-top: 28px;
+                border-top: 1px solid var(--rule);
+            }
+
+            .sample-transcript, .comparison-row .media-label {
+                min-height: 0;
+            }
+
+            h2 {
+                margin-top: 36px;
+                font-size: 1.3rem;
+            }
+        }
+
+        @media print {
+            .page {
+                width: 100%;
+                margin: 0;
+            }
+
+            h2, h3, .media-label {
+                break-after: avoid;
+            }
+
+            .column-list {
+                break-inside: avoid;
+            }
+        }
+  </style>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+ </head>
+ <body>
+  <article class="page sans" id="2b23314f-55b0-802b-966d-d67901ca7c80" role="main">
+   <header>
+    <p><a href="../vocal-tract/">← Project page</a></p>
+    <h1 class="page-title" dir="auto">
+     Reconstructing the Vocal Tract with Differentiable Acoustic Simulation
+    </h1>
+    <p class="page-subtitle" id="2f73314f-55b0-8075-b0e0-e32a129ea50c">
+     Supplementary Videos
+    </p>
+   </header>
+   <div class="page-body">
+    <h2 id="2f63314f-55b0-8018-b684-cbc23cf14a36">
+     Autoencoding Results
+    </h2>
+    <p id="2f63314f-55b0-8064-9093-cf8d212a951f">
+     We encode speech into cross sectional areas of the vocal tract, then decode the cross sections to speech.
+    </p>
+    <div class="column-list autoencoding-grid" id="2b53314f-55b0-8031-a5d8-e6fdba32e510">
+     <section class="autoencoding-example">
+      <h3 id="2ee3314f-55b0-8067-8db9-f4f5d0e4365b">
+       <strong>
+        Autoencoding 1:
+       </strong>
+      </h3>
+      <p class="sample-transcript" id="2b53314f-55b0-8098-bfc7-f3d2c4de69ba">
+       “On November 8, 1963”
+      </p>
+      <div class="column" id="2b53314f-55b0-8098-8f6a-d086ca1c6d83">
+       <p class="media-label" id="2b53314f-55b0-80b9-b6f1-d299457ce536">
+        <strong>
+         Ground Truth
+        </strong>
+       </p>
+       <figure id="3593314f-55b0-8000-82ab-eecdfd15a1ab">
+        <audio aria-label="Autoencoding 1: — Ground Truth" controls="" preload="metadata" src="media/on_november_8_1963_parent.wav">
+        </audio>
+       </figure>
+      </div>
+      <div class="column" id="2b53314f-55b0-8047-b04e-e9292b7d96c7">
+       <p class="media-label" id="2b53314f-55b0-8075-a7d0-f796dd2889c4">
+        <strong>
+         Reconstructed Audio and Cross-Sections
+        </strong>
+       </p>
+       <figure id="2b53314f-55b0-8021-a9b9-dac5a48cc6ae">
+        <video aria-label="Autoencoding 1: — Reconstructed Audio and Cross-Sections" controls="" playsinline="" preload="auto" src="media/on_november_8_1963.mp4">
+        </video>
+       </figure>
+      </div>
+     </section>
+     <section class="autoencoding-example">
+      <h3 id="2f73314f-55b0-8046-bc7f-c83f56ab802e">
+       <strong>
+        Autoencoding 2:
+       </strong>
+      </h3>
+      <p class="sample-transcript" id="2b53314f-55b0-80ac-afd3-c6dc9e2ba02b">
+       “It was the discovery of this flaw in the banking sys…”
+      </p>
+      <div class="column" id="2f53314f-55b0-802f-9c88-e3894a7a1081">
+       <p class="media-label" id="2f53314f-55b0-80b5-9f5c-f5cc96cdf29b">
+        <strong>
+         Ground Truth
+        </strong>
+       </p>
+       <figure id="2b53314f-55b0-80fa-9f3a-d4cce782e397">
+        <audio aria-label="Autoencoding 2: — Ground Truth" controls="" preload="metadata" src="media/it_was_the_discovery_of_this_flaw.wav">
+        </audio>
+       </figure>
+      </div>
+      <div class="column" id="2f53314f-55b0-808c-9884-e434a55b6575">
+       <p class="media-label" id="2f53314f-55b0-80ee-91dc-d5a8b104d211">
+        <strong>
+         Reconstructed Audio and Cross-Sections
+        </strong>
+       </p>
+       <figure id="2b53314f-55b0-802d-80ba-ca9c53356020">
+        <video aria-label="Autoencoding 2: — Reconstructed Audio and Cross-Sections" controls="" playsinline="" preload="auto" src="media/it_was_the_discovery_of_this_flaw.mp4">
+        </video>
+       </figure>
+      </div>
+     </section>
+    </div>
+    <hr id="2f73314f-55b0-80c5-b466-f233151eb8ef"/>
+    <div class="column-list autoencoding-grid" id="2f73314f-55b0-80fc-91d5-ca178359aec6">
+     <section class="autoencoding-example">
+      <h3 id="2f73314f-55b0-80de-9a7b-fdcab446bce2">
+       <strong>
+        Autoencoding 3:
+       </strong>
+      </h3>
+      <p class="sample-transcript" id="2b53314f-55b0-80cc-b304-ef985d9b631a">
+       “He cried out, quote, ‘Oh no'"
+      </p>
+      <div class="column" id="2f73314f-55b0-80b7-a511-e6170391e04f">
+       <p class="media-label">
+        Ground Truth
+       </p>
+       <figure id="2b53314f-55b0-80ab-9327-f81cabe98b2c">
+        <audio aria-label="Autoencoding 3: — Ground Truth" controls="" preload="metadata" src="media/he_cried_out_quote_oh_no.wav">
+        </audio>
+       </figure>
+      </div>
+      <div class="column" id="2f73314f-55b0-80ca-8cb3-ce910472fdbe">
+       <p class="media-label">
+        Reconstructed Audio and Cross-Sections
+       </p>
+       <figure id="2b53314f-55b0-8070-bad4-d2487474352a">
+        <video aria-label="Autoencoding 3: — Reconstructed Audio and Cross-Sections" controls="" playsinline="" preload="auto" src="media/he_cried_out_quote_oh_no.mp4">
+        </video>
+       </figure>
+      </div>
+     </section>
+     <section class="autoencoding-example">
+      <h3 id="2f73314f-55b0-80a9-98cc-e3d77d593fcd">
+       <strong>
+        Autoencoding 4:
+       </strong>
+      </h3>
+      <p class="sample-transcript" id="2b53314f-55b0-80f0-9058-c4be4f34da90">
+       “It sought to obtain and diffuse useful informa…”
+      </p>
+      <div class="column" id="2f73314f-55b0-80b7-82c2-ca4f309316dc">
+       <p class="media-label">
+        Ground Truth
+       </p>
+       <figure id="2b53314f-55b0-80ee-99d4-e348b029eba1">
+        <audio aria-label="Autoencoding 4: — Ground Truth" controls="" preload="metadata" src="media/it_sought_to_diffuse_and_obtain.wav">
+        </audio>
+       </figure>
+      </div>
+      <div class="column" id="2f73314f-55b0-809f-a855-cf55a02f3083">
+       <p class="media-label">
+        Reconstructed Audio and Cross-Sections
+       </p>
+       <figure id="2b53314f-55b0-80d6-a7b4-f0a229d92d7c">
+        <video aria-label="Autoencoding 4: — Reconstructed Audio and Cross-Sections" controls="" playsinline="" preload="auto" src="media/it_sought_to_diffuse_and_obtain.mp4">
+        </video>
+       </figure>
+      </div>
+     </section>
+    </div>
+    <h2 id="2f53314f-55b0-80d2-be94-d6d17bc18aa5">
+     Singing Synthesis
+    </h2>
+    <p id="2f53314f-55b0-80b4-826c-ca0dbb54ac7c">
+     To highlight the expressivity of the model, we show how we can use our simulator to reconstruct popular songs. The area functions are parameterized by a neural field.
+    </p>
+    <div class="column-list video-example" id="3593314f-55b0-80d6-af99-db35b7ecd995">
+     <div class="column" id="3593314f-55b0-8077-abd3-f6a9a05b7854">
+      <p id="2f53314f-55b0-80ea-9831-f6ec07c96104">
+       <strong>
+        Video 1 (English Pop Song Synthesis)
+       </strong>
+       . A reconstruction of a popular English language song.
+      </p>
+      <p id="2f73314f-55b0-8028-b616-fc3bb4949931">
+       <strong>
+        Sampling Rate:
+       </strong>
+       32000 Hz
+      </p>
+      <p id="2f73314f-55b0-80fd-b33d-d318cb13c996">
+       <strong>
+        Original Source:
+       </strong>
+       <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">
+        https://www.youtube.com/watch?v=dQw4w9WgXcQ
+       </a>
+      </p>
+      <p id="2f73314f-55b0-803b-91c8-c32576d39b8d">
+       <strong>
+        Transcript:
+       </strong>
+       “We’re no strangers to love. You know the rules, and so do I.”
+      </p>
+     </div>
+     <div class="column" id="3593314f-55b0-80e2-990d-f2810a8c2875">
+      <figure id="2f73314f-55b0-80ff-b1f5-ee3f9a159a06">
+       <video aria-label="Video 1 (English Pop Song Synthesis) . A reconstruction of a popular English language song." controls="" playsinline="" preload="auto" src="media/never_gonna.mp4">
+       </video>
+      </figure>
+     </div>
+    </div>
+    <div class="column-list video-example" id="3593314f-55b0-8067-9f4a-d886b2672c45">
+     <div class="column" id="3593314f-55b0-800d-b2b8-d7f51525eab0">
+      <p id="3523314f-55b0-80b5-9ab1-f951ec055ea5">
+       <strong>
+        Video 3 (English Pop Song Synthesis).
+       </strong>
+       A reconstruction of “Hey Jude” by the Beatles
+      </p>
+      <p id="3593314f-55b0-80c2-9f7d-df5ebec4b65d">
+       <strong>
+        Sampling Rate:
+       </strong>
+       3200 Hz
+      </p>
+      <p id="3593314f-55b0-80f4-b529-d94ec0c7df1d">
+       <strong>
+        Original Source:
+       </strong>
+       <a href="https://www.youtube.com/watch?v=tmoil_ZEorg">
+        https://www.youtube.com/watch?v=tmoil_ZEorg
+       </a>
+      </p>
+      <p id="3593314f-55b0-801e-9290-e8044ff8f16a">
+       <strong>
+        Transcript:
+       </strong>
+       “Hey Jude, don’t make it bad. Take a sad song, and make it better.”
+      </p>
+     </div>
+     <div class="column" id="3593314f-55b0-8050-873a-fca72bef12b3">
+      <figure id="3593314f-55b0-8084-9a29-ddb8593e9ffd">
+       <video aria-label="Video 3 (English Pop Song Synthesis). A reconstruction of “Hey Jude” by the Beatles" controls="" playsinline="" preload="auto" src="media/hey_jude.mp4">
+       </video>
+      </figure>
+     </div>
+    </div>
+    <div class="column-list video-example" id="2f53314f-55b0-808f-9809-eefa73de9898">
+     <div class="column" id="2f53314f-55b0-804b-b3de-eeb950204610">
+      <p id="2f53314f-55b0-80b7-8e0a-c8a848546470">
+       <strong>
+        Video 4 (K-pop Synthesis):
+       </strong>
+       A reconstruction of the beginning of “OMG” by New Jeans.
+      </p>
+      <p id="2f53314f-55b0-80a6-9cc6-ee0250b288b5">
+       <strong>
+        Sampling Rate:
+       </strong>
+       44100 Hz
+      </p>
+      <p id="2f53314f-55b0-8049-a8de-e4e147cfb8ff">
+       <strong>
+        Original Source:
+       </strong>
+       <a href="https://www.youtube.com/watch?v=BH1o66wl8qE">
+        https://www.youtube.com/watch?v=BH1o66wl8qE
+       </a>
+      </p>
+      <p id="2f73314f-55b0-807e-822c-c62cd21f5e68">
+       <strong>
+        Transcript:
+       </strong>
+       “이 노래는 (this song) it’s about you baby… Only you… You, you, you, you, you, you, you.”
+      </p>
+     </div>
+     <div class="column" id="2f53314f-55b0-8097-b50e-d4720391142d">
+      <figure id="2f53314f-55b0-8048-86e6-c23fbfdb239c">
+       <video aria-label="Video 4 (K-pop Synthesis): A reconstruction of the beginning of “OMG” by New Jeans." controls="" playsinline="" preload="auto" src="media/OMG_Cover.mp4">
+       </video>
+      </figure>
+     </div>
+    </div>
+    <h2 id="2f73314f-55b0-8072-a9f7-d944e6bcae72">
+     Generalization to Out of Distribution Sounds
+    </h2>
+    <div class="column-list video-example" id="3523314f-55b0-802b-9e6e-c477c1b2d8c3">
+     <div class="column" id="3523314f-55b0-80ec-b0bb-ed7cf2df8b36">
+      <p id="2f73314f-55b0-8012-9591-e2abdb2010ee">
+       <strong>
+        Video 5 (Fitting a Piano).
+       </strong>
+       The acoustic simulator can even fit to out of distribution sounds like a piano, but still maintain a human timbre. For example, when fitting “Ode to Joy”, the model still sounds distinctly human, validating that the model’s physics are constrained to human voices.
+      </p>
+      <p id="2f73314f-55b0-80ad-9103-d5f3d7c4fb57">
+       <strong>
+        Original Source:
+       </strong>
+       <a href="https://www.youtube.com/watch?v=4YV4B_qxl78">
+        https://www.youtube.com/watch?v=4YV4B_qxl78
+       </a>
+      </p>
+      <figure id="2f73314f-55b0-8046-95a0-f69eea695dc1">
+       <audio aria-label="Video 5 (Fitting a Piano). The acoustic simulator can even fit to out of distribution sounds like a piano, but still maintain a human timbre. For example, when fitting “Ode to Joy”, the model still sounds distinctly human, validating that the model’s physics are constrained to human voices." controls="" preload="metadata" src="media/ode_gt.wav">
+       </audio>
+      </figure>
+      <p id="2f73314f-55b0-8063-a28c-d6486d7ca730">
+       <strong>
+        Sampling Rate:
+       </strong>
+       32000 Hz
+      </p>
+     </div>
+     <div class="column" id="3523314f-55b0-800b-b7f8-fbdae1473cc4">
+      <figure id="2f73314f-55b0-809a-8fe8-ca364aec64e7">
+       <video aria-label="Video 5 (Fitting a Piano). The acoustic simulator can even fit to out of distribution sounds like a piano, but still maintain a human timbre. For example, when fitting “Ode to Joy”, the model still sounds distinctly human, validating that the model’s physics are constrained to human voices." controls="" playsinline="" preload="auto" src="media/ode_to_joy_recon2.mp4">
+       </video>
+      </figure>
+     </div>
+    </div>
+    <h2 id="2b53314f-55b0-80b2-a681-cfd6e7c471db">
+     Visualizing MRI and cross-sectional areas
+    </h2>
+    <p id="2f63314f-55b0-8084-9815-cb06a67e15e1">
+     <strong>
+      Video 6:
+     </strong>
+     We can synthesize speech on MRI volumes by segmenting the cross-sectional areas from the vocal tract. This allows us to fit a MRI video to a target utterance. The speech sample is from the LJSpeech dataset.
+    </p>
+    <div class="column-list comparison-row" id="2b23314f-55b0-8006-936c-da15b3d0a8ef">
+     <div class="column transcript" id="2f73314f-55b0-8053-9f52-f24df9b102c0">
+      <p id="2f73314f-55b0-8067-89cd-d4abd415d4e8">
+       <strong>
+        Transcript
+       </strong>
+      </p>
+      <p id="2f73314f-55b0-80b7-9eb6-cdd9eb35877d">
+       “The problem is aggravated by the necessity”
+      </p>
+     </div>
+     <div class="column" id="2ee3314f-55b0-80b6-8c90-dd29100a6bef">
+      <p class="media-label" id="2ee3314f-55b0-802a-9fd5-e472ea718cbd">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2b23314f-55b0-8019-bc85-d4aa67470b51">
+       <audio aria-label="“The problem is aggravated by the necessity” — Ground Truth" controls="" preload="metadata" src="media/problem_tgt.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f73314f-55b0-8037-bc0d-cc80b08e145b">
+      <p class="media-label" id="2b23314f-55b0-8007-bb2b-d5390da91f4c">
+       <strong>
+        Area Function Reconstruction (SR: 16000 Hz)
+       </strong>
+      </p>
+      <figure id="2b23314f-55b0-80a8-9c21-d18e90523470">
+       <video aria-label="“The problem is aggravated by the necessity” — Area Function Reconstruction (SR: 16000 Hz)" controls="" playsinline="" preload="auto" src="media/the_problem_area.mp4">
+       </video>
+      </figure>
+     </div>
+     <div class="column" id="2b23314f-55b0-80f2-99b9-e6b3bdbcf45a">
+      <p class="media-label" id="2b23314f-55b0-80e2-b512-f8ac816aeeb3">
+       <strong>
+        MRI Reconstruction (SR: 16000 Hz)
+       </strong>
+      </p>
+      <figure id="2b23314f-55b0-80a8-aaa6-f84c81de641d">
+       <video aria-label="“The problem is aggravated by the necessity” — MRI Reconstruction (SR: 16000 Hz)" controls="" playsinline="" preload="auto" src="media/the_problem_is_aggravated_by_the_necessity.mp4">
+       </video>
+      </figure>
+     </div>
+    </div>
+    <h2 id="2ee3314f-55b0-800d-98d7-fd0f25c97813">
+     MRI Comparison with Speech2rtMRI
+    </h2>
+    <p id="2f53314f-55b0-8086-81d3-ef84e05f0a5a">
+     We evaluate our MRI reconstruct technique on examples from the USC 75-Speaker Speech MRI dataset. Background noise from the MRI machine is removed with Adobe Express’s speech enhancement tool. By “analysis by synthesis”, our technique can reconstruct both a MRI video of the speaker, and the speech synthesized from our acoustic simulator. On the other hand, the SOTA MRI reconstruction method Speech2rtMRI [Nguyen et al., 2025] cannot synthesize audio. Speech2rtMRI suffers from significant degradation because it is a video diffusion model with no acoustic grounding for the human vocal tract. Video diffusion models are known to struggle when generating long sequences. Meanwhile, our method can faithfully reconstruct the MRIs. One major difficulty when solving this problem is that the mapping between vocal tract geometry to speech is not one-to-one. Multiple vocal tract shapes can product the same sound, causing ambiguity in the generated MRIs.
+    </p>
+    <p id="2f63314f-55b0-8070-b72c-ca87da1aa9cb">
+     Audio is sampled at 24000 Hz.
+    </p>
+    <hr id="2f63314f-55b0-80c0-bebb-e9684baad3c0"/>
+    <div class="column-list comparison-row" id="2f63314f-55b0-803f-94ce-ee68d77de01f">
+     <div class="column transcript" id="2f63314f-55b0-80a9-8b17-d54da15c6729">
+      <p id="2f53314f-55b0-805f-9bca-d0ece774c0f1">
+       <strong>
+        Transcript
+       </strong>
+      </p>
+      <p id="2f53314f-55b0-806e-938b-c3bce2aec668">
+       <strong>
+        MRI 1:
+       </strong>
+       “The best place I’ve been to as I was saying is uh, New York”
+      </p>
+     </div>
+     <div class="column" id="2f63314f-55b0-80bd-96a9-c2bca904e7e2">
+      <p class="media-label" id="2f53314f-55b0-8088-9377-d3d0acca07f1">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-803e-bebc-fbcce7ceb415">
+       <video aria-label="MRI 1: “The best place I’ve been to as I was saying is uh, New York” — Ground Truth" controls="" playsinline="" preload="auto" src="media/sub030_ny_gt.mp4">
+       </video>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-8093-b8a4-f30f17d83a6f">
+      <p class="media-label" id="2f53314f-55b0-8021-a046-e168af299cf9">
+       <strong>
+        Speech2rtMRI (No Audio)
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-8036-8189-f54e1abc3ca0">
+       <video aria-label="MRI 1: “The best place I’ve been to as I was saying is uh, New York” — Speech2rtMRI (No Audio)" controls="" playsinline="" preload="auto" src="media/sub030_2drt_20_topic4_video_supp.mp4">
+       </video>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-80fa-bafb-fb0ce7fee8c5">
+      <p class="media-label" id="2f53314f-55b0-8023-bdc9-d9b466c86998">
+       <strong>
+        Our Reconstructed MRI and Audio
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-80a3-bc6b-c8bce0a781b7">
+       <video aria-label="MRI 1: “The best place I’ve been to as I was saying is uh, New York” — Our Reconstructed MRI and Audio" controls="" playsinline="" preload="auto" src="media/sub030_ny_oursmp4.mp4">
+       </video>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f73314f-55b0-80ad-8105-cccc72cce1aa"/>
+    <div class="column-list comparison-row" id="2f53314f-55b0-806d-8676-c4b507503256">
+     <div class="column transcript" id="2f63314f-55b0-80c7-9730-e63ec24a5c35">
+      <p>
+       <strong>
+        Transcript
+       </strong>
+      </p>
+      <p id="2f53314f-55b0-802d-9550-f2ec4382bf64">
+       <strong>
+        MRI 2:
+       </strong>
+       “So, my favorite music right now…”
+      </p>
+     </div>
+     <div class="column" id="2f53314f-55b0-8057-a579-e7ffefdc7a31">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f53314f-55b0-80c3-b5a9-f3b75056e700">
+       <video aria-label="MRI 2: “So, my favorite music right now…” — Ground Truth" controls="" playsinline="" preload="auto" src="media/sub002_music_gt.mp4">
+       </video>
+      </figure>
+     </div>
+     <div class="column" id="2f53314f-55b0-80a8-a3dd-d6aee6af3d4a">
+      <p class="media-label">
+       <strong>
+        Speech2rtMRI (No Audio)
+       </strong>
+      </p>
+      <figure id="2f53314f-55b0-807d-8c33-f57643ab44e8">
+       <video aria-label="MRI 2: “So, my favorite music right now…” — Speech2rtMRI (No Audio)" controls="" playsinline="" preload="auto" src="media/diffusion_my_favorite_music.mp4">
+       </video>
+      </figure>
+     </div>
+     <div class="column" id="2f53314f-55b0-80cc-8fd8-f689d73cdf95">
+      <p class="media-label">
+       <strong>
+        Our Reconstructed MRI and Audio
+       </strong>
+      </p>
+      <figure id="2f53314f-55b0-809d-af40-e5dca95bd11f">
+       <video aria-label="MRI 2: “So, my favorite music right now…” — Our Reconstructed MRI and Audio" controls="" playsinline="" preload="auto" src="media/sub002_music_ours.mp4">
+       </video>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f63314f-55b0-8025-a4a1-e20345317eb4"/>
+    <div class="column-list comparison-row" id="2f63314f-55b0-8072-b083-f0dadb299ad3">
+     <div class="column transcript" id="2f63314f-55b0-8045-b1e4-f5de359fc274">
+      <p>
+       <strong>
+        Transcript
+       </strong>
+      </p>
+      <p id="2f53314f-55b0-80d7-b2da-e762a74453d2">
+       <strong>
+        MRI 3:
+       </strong>
+       “My favorite restaurant, there is one…”
+      </p>
+     </div>
+     <div class="column" id="2f73314f-55b0-8001-bf16-c1f77f61e97b">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-80dd-a407-d34856a44b7f">
+       <video aria-label="MRI 3: “My favorite restaurant, there is one…” — Ground Truth" controls="" playsinline="" preload="auto" src="media/restaurant_gt.mp4">
+       </video>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-802d-9e6e-e938fef38163">
+      <p class="media-label">
+       <strong>
+        Speech2rtMRI (No Audio)
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-8082-9f82-e51f7ef525b0">
+       <video aria-label="MRI 3: “My favorite restaurant, there is one…” — Speech2rtMRI (No Audio)" controls="" playsinline="" preload="auto" src="media/sub001_2drt_21_topic5_video_supp.mp4">
+       </video>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-80cb-8c1d-e35b526a3791">
+      <p class="media-label">
+       <strong>
+        Our Reconstructed MRI and Audio
+       </strong>
+      </p>
+      <figure id="2f53314f-55b0-80ae-93ed-e111a37b6b18">
+       <video aria-label="MRI 3: “My favorite restaurant, there is one…” — Our Reconstructed MRI and Audio" controls="" playsinline="" preload="auto" src="media/restaurant_ours.mp4">
+       </video>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f63314f-55b0-80de-b5c7-c91db84360fd"/>
+    <div class="column-list comparison-row" id="2f63314f-55b0-804e-881c-e720033f9572">
+     <div class="column transcript" id="2f63314f-55b0-8016-a7b1-eda2e4dcc6e8">
+      <p>
+       <strong>
+        Transcript
+       </strong>
+      </p>
+      <p id="2ee3314f-55b0-804e-967c-e0764e8f952b">
+       <strong>
+        MRI 4:
+       </strong>
+       “I like a lot of different genres”
+      </p>
+     </div>
+     <div class="column" id="2f63314f-55b0-80f4-be02-f5c75eb48369">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f53314f-55b0-8040-9633-ecde3e8aa18e">
+       <video aria-label="MRI 4: “I like a lot of different genres” — Ground Truth" controls="" playsinline="" preload="auto" src="media/sub03.mp4">
+       </video>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-8068-a278-d72f1bb8d240">
+      <p class="media-label">
+       <strong>
+        Speech2rtMRI (No Audio)
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-80b0-9a9b-efb64a9f248a">
+       <video aria-label="MRI 4: “I like a lot of different genres” — Speech2rtMRI (No Audio)" controls="" playsinline="" preload="auto" src="media/sub003_diffusion.mp4">
+       </video>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-80b7-9b79-dd12c194d29a">
+      <p class="media-label">
+       <strong>
+        Our Reconstructed MRI and Audio
+       </strong>
+      </p>
+      <figure id="2f53314f-55b0-804d-b1a8-d766cfffcce3">
+       <video aria-label="MRI 4: “I like a lot of different genres” — Our Reconstructed MRI and Audio" controls="" playsinline="" preload="auto" src="media/genres_ours.mp4">
+       </video>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f63314f-55b0-80e9-bc80-cb4e7d801667"/>
+    <div class="column-list comparison-row" id="2f63314f-55b0-803b-9824-cdf705074802">
+     <div class="column transcript" id="2f63314f-55b0-8001-96c7-e5ea8a006b6c">
+      <p>
+       <strong>
+        Transcript
+       </strong>
+      </p>
+      <p id="2f53314f-55b0-80c1-b6f5-e21040b2d97b">
+       <strong>
+        MRI 5:
+       </strong>
+       “Oh I really like LA. I’m from Connecticut so LA is really really”
+      </p>
+     </div>
+     <div class="column" id="2f63314f-55b0-80a8-be8a-dc3e87e7c5c1">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f53314f-55b0-8092-9042-f32eaf1f9558">
+       <video aria-label="MRI 5: “Oh I really like LA. I’m from Connecticut so LA is really really” — Ground Truth" controls="" playsinline="" preload="auto" src="media/sub011_la_gt.mp4">
+       </video>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-806f-ab4c-c80708b47ba3">
+      <p class="media-label">
+       <strong>
+        Speech2rtMRI (No Audio)
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-80b5-be30-fdefa6bacb4c">
+       <video aria-label="MRI 5: “Oh I really like LA. I’m from Connecticut so LA is really really” — Speech2rtMRI (No Audio)" controls="" playsinline="" preload="auto" src="media/sub011_2drt_18_topic2_video_supp.mp4">
+       </video>
+      </figure>
+     </div>
+     <div class="column" id="2f73314f-55b0-80bf-b79b-c142d2b1aece">
+      <p class="media-label">
+       <strong>
+        Our Reconstructed MRI and Audio
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-80af-8db1-f3f01eb0fd3e">
+       <video aria-label="MRI 5: “Oh I really like LA. I’m from Connecticut so LA is really really” — Our Reconstructed MRI and Audio" controls="" playsinline="" preload="auto" src="media/sub011_la_s1_1.mp4">
+       </video>
+      </figure>
+     </div>
+    </div>
+    <h2 id="2f73314f-55b0-8091-8e74-e30acbc6be82">
+     Auto-encoding Comparison to TensorTract2
+    </h2>
+    <p id="3593314f-55b0-809a-a863-fa345e21ff92">
+     Our work can faithfully reconstruct the identity of speakers, while TensorTract2 is restricted to an adult male vocal tract
+    </p>
+    <div class="column-list comparison-row audio-comparison" id="2f63314f-55b0-8073-8eec-e41f17aa89e0">
+     <div class="column transcript" id="2f63314f-55b0-809f-89a2-cdc89275fb21">
+      <p id="2f63314f-55b0-8073-a1b5-d931b0d23617">
+       <strong>
+        Transcript
+       </strong>
+      </p>
+      <p id="2f63314f-55b0-80a3-ab21-e519836584f3">
+       <strong>
+        English 1.
+       </strong>
+       We say of course, somebody exclaimed, that they give two turns.
+      </p>
+     </div>
+     <div class="column" id="2f63314f-55b0-807b-8fef-f090c0352f42">
+      <p class="media-label" id="2f63314f-55b0-80df-9e13-f15d5046c034">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-80d2-a0f0-c6b293724ad0">
+       <audio aria-label="English 1. We say of course, somebody exclaimed, that they give two turns. — Ground Truth" controls="" preload="metadata" src="media/121_127105_000009_000000.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-8078-b563-ebc31dd81e06">
+      <p class="media-label" id="2f63314f-55b0-8059-86d7-de85bbd582f3">
+       <strong>
+        TensorTract2 (SR: 44100 Hz)
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-8022-bf2c-d5fd9d9ebceb">
+       <audio aria-label="English 1. We say of course, somebody exclaimed, that they give two turns. — TensorTract2 (SR: 44100 Hz)" controls="" preload="metadata" src="media/121_127105_000009_000000%201.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-80a9-b8ce-d404f554b3ff">
+      <p class="media-label" id="2f63314f-55b0-804b-bb7e-cf4428bae0e8">
+       <strong>
+        Ours (SR: 16000 Hz)
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-80bc-a287-f67af00496d1">
+       <audio aria-label="English 1. We say of course, somebody exclaimed, that they give two turns. — Ours (SR: 16000 Hz)" controls="" preload="metadata" src="media/121_127105_000009_000000%202.wav">
+       </audio>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f63314f-55b0-8008-a78c-d0c8a4ef3033"/>
+    <div class="column-list comparison-row audio-comparison" id="2f63314f-55b0-8022-a807-f30467ea5972">
+     <div class="column transcript" id="2f63314f-55b0-8003-af01-cd8969b7637e">
+      <p id="2f63314f-55b0-8099-ad67-c4d7f6b2340f">
+       <strong>
+        English 2.
+       </strong>
+       I’m a good catholic. But I think I could get along with caring for trees, if I hadn’t anything else.
+      </p>
+     </div>
+     <div class="column" id="2f63314f-55b0-8009-9675-c7bf1e200c9c">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-8051-8b37-e2c70c319a1a">
+       <audio aria-label="English 2. I’m a good catholic. But I think I could get along with caring for trees, if I hadn’t anything else. — Ground Truth" controls="" preload="metadata" src="media/237_134500_000014_000002.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-8045-80be-c09a1cd4ac58">
+      <p class="media-label">
+       <strong>
+        TensorTract2 (SR: 44100 Hz)
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-80b9-a823-c62b12bce5f3">
+       <audio aria-label="English 2. I’m a good catholic. But I think I could get along with caring for trees, if I hadn’t anything else. — TensorTract2 (SR: 44100 Hz)" controls="" preload="metadata" src="media/237_134500_000014_000002%201.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-801a-bf4e-e07bcf5425c9">
+      <p class="media-label">
+       <strong>
+        Ours (SR: 16000 Hz)
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-8071-8ac7-ea80c9d4c14c">
+       <audio aria-label="English 2. I’m a good catholic. But I think I could get along with caring for trees, if I hadn’t anything else. — Ours (SR: 16000 Hz)" controls="" preload="metadata" src="media/237_134500_000014_000002%202.wav">
+       </audio>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f63314f-55b0-8050-800c-e505fca7b251"/>
+    <div class="column-list comparison-row audio-comparison" id="2f63314f-55b0-8067-9949-c3bfd8742518">
+     <div class="column transcript" id="2f63314f-55b0-80d0-b671-e14aaf2eee76">
+      <p id="2f63314f-55b0-80f6-9ea4-c5379b54ed5e">
+       <strong>
+        English 3.
+       </strong>
+       What did it avail to pray, when he knew that his soul lusted after its own destruction?
+      </p>
+     </div>
+     <div class="column" id="2f63314f-55b0-8065-ac27-fd0f518ff4d3">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-80ad-9889-cbc8c7ca5780">
+       <audio aria-label="English 3. What did it avail to pray, when he knew that his soul lusted after its own destruction? — Ground Truth" controls="" preload="metadata" src="media/1089_134686_000009_000008.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-80bf-af98-f3a02ca24b4d">
+      <p class="media-label">
+       <strong>
+        TensorTract2 (SR: 44100 Hz)
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-80bb-b98f-f2780f2ef8dd">
+       <audio aria-label="English 3. What did it avail to pray, when he knew that his soul lusted after its own destruction? — TensorTract2 (SR: 44100 Hz)" controls="" preload="metadata" src="media/1089_134686_000009_000008%201.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-805f-9aeb-edbf5754921e">
+      <p class="media-label">
+       <strong>
+        Ours (SR: 16000 Hz)
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-80f8-939f-ea203e97e27d">
+       <audio aria-label="English 3. What did it avail to pray, when he knew that his soul lusted after its own destruction? — Ours (SR: 16000 Hz)" controls="" preload="metadata" src="media/1089_134686_000009_000008%202.wav">
+       </audio>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f63314f-55b0-800a-ba15-d0277f349f3c"/>
+    <div class="column-list comparison-row audio-comparison" id="2f63314f-55b0-8011-b8a8-d2eacf776d7c">
+     <div class="column transcript" id="2f63314f-55b0-8029-9034-d5bd14897ddf">
+      <p id="2f63314f-55b0-807a-a9bc-ca9b091b2ef0">
+       <strong>
+        English 4.
+       </strong>
+       There is hardly one day out of a hundred, which is wholly joyous and sunny.”
+      </p>
+     </div>
+     <div class="column" id="2f63314f-55b0-806a-a9fa-fb3661943956">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-8009-8cf3-c032215831fe">
+       <audio aria-label="English 4. There is hardly one day out of a hundred, which is wholly joyous and sunny.” — Ground Truth" controls="" preload="metadata" src="media/4507_16021_000036_000007.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-80fb-8a0a-fd1e39a1780b">
+      <p class="media-label">
+       <strong>
+        TensorTract2 (SR: 44100 Hz)
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-8099-bdb3-de4a196fc139">
+       <audio aria-label="English 4. There is hardly one day out of a hundred, which is wholly joyous and sunny.” — TensorTract2 (SR: 44100 Hz)" controls="" preload="metadata" src="media/4507_16021_000036_000007%201.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-80df-8eb0-fd2a0917cc6d">
+      <p class="media-label">
+       <strong>
+        Ours (SR: 16000 Hz)
+       </strong>
+      </p>
+      <figure id="3593314f-55b0-80fd-bd6f-cac6ec44823b">
+       <audio aria-label="English 4. There is hardly one day out of a hundred, which is wholly joyous and sunny.” — Ours (SR: 16000 Hz)" controls="" preload="metadata" src="media/4507_16021_000036_000007%202.wav">
+       </audio>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f63314f-55b0-8007-9b94-c4944d7e8fdf"/>
+    <div class="column-list comparison-row audio-comparison" id="2f63314f-55b0-8021-b706-d418535777da">
+     <div class="column transcript" id="2f63314f-55b0-8026-b448-db83743a659e">
+      <p id="2f63314f-55b0-80fb-9199-ee7c05aaec62">
+       <strong>
+        English 5.
+       </strong>
+       Among other things on, which she cast her eyes, was a small crucifix of solid silver, standing on a cabinet near the window.
+      </p>
+     </div>
+     <div class="column" id="2f63314f-55b0-803f-8df1-e7dcb9ee6533">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-8072-ad7f-c736ea82f09b">
+       <audio aria-label="English 5. Among other things on, which she cast her eyes, was a small crucifix of solid silver, standing on a cabinet near the window. — Ground Truth" controls="" preload="metadata" src="media/5639_40744_000007_000001.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-803f-adb3-f9a1f2aaba56">
+      <p class="media-label">
+       <strong>
+        TensorTract2 (SR: 44100 Hz)
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-80dc-9205-c725c9b81136">
+       <audio aria-label="English 5. Among other things on, which she cast her eyes, was a small crucifix of solid silver, standing on a cabinet near the window. — TensorTract2 (SR: 44100 Hz)" controls="" preload="metadata" src="media/5639_40744_000007_000001%201.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-801d-a61f-d042af177672">
+      <p class="media-label">
+       <strong>
+        Ours (SR: 16000 Hz)
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-8066-ad40-e6c8d30b7563">
+       <audio aria-label="English 5. Among other things on, which she cast her eyes, was a small crucifix of solid silver, standing on a cabinet near the window. — Ours (SR: 16000 Hz)" controls="" preload="metadata" src="media/5639_40744_000007_000001%202.wav">
+       </audio>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f63314f-55b0-8013-8a2e-dc5b6b5ca2d8"/>
+    <div class="column-list comparison-row audio-comparison" id="2f63314f-55b0-8055-8017-c3832d206d9b">
+     <div class="column transcript" id="2f63314f-55b0-8053-b82f-d558f3374c97">
+      <p id="2f63314f-55b0-8093-97b2-ca8f73ef1166">
+       <strong>
+        Korean 1.
+       </strong>
+       너는 내가 아는 어떤 사람이랑 많이 닮았어.
+      </p>
+      <p class="translation" id="2f63314f-55b0-80ff-ae97-df8b3d7ac9b1">
+       Translation: You look like someone I know.
+      </p>
+     </div>
+     <div class="column" id="2f63314f-55b0-8016-9599-fec29698b92a">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-8055-9040-e5065e43c38b">
+       <audio aria-label="Korean 1. 너는 내가 아는 어떤 사람이랑 많이 닮았어. — Ground Truth" controls="" preload="metadata" src="media/1_0188.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-8086-9a2a-e141a9c35c27">
+      <p class="media-label">
+       <strong>
+        TensorTract2 (SR: 44100 Hz)
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-803f-9697-c59ded0efcfc">
+       <audio aria-label="Korean 1. 너는 내가 아는 어떤 사람이랑 많이 닮았어. — TensorTract2 (SR: 44100 Hz)" controls="" preload="metadata" src="media/1_0188%201.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-8037-a34c-f1915820bc11">
+      <p class="media-label">
+       <strong>
+        Ours (SR: 16000 Hz)
+       </strong>
+      </p>
+      <figure id="3593314f-55b0-8063-975c-f67ec29cf54e">
+       <audio aria-label="Korean 1. 너는 내가 아는 어떤 사람이랑 많이 닮았어. — Ours (SR: 16000 Hz)" controls="" preload="metadata" src="media/1_0188%202.wav">
+       </audio>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f63314f-55b0-80c5-b960-ee553caec9d1"/>
+    <div class="column-list comparison-row audio-comparison" id="2f63314f-55b0-801f-b2ea-f78ba31dbb73">
+     <div class="column transcript" id="2f63314f-55b0-806a-b890-cd8a36391819">
+      <p id="2f63314f-55b0-801d-ad9f-ed5bc2884d68">
+       <strong>
+        Korean 2.
+       </strong>
+       저는 부산에서 자랐어요.
+      </p>
+      <p class="translation" id="2f63314f-55b0-80e9-b5eb-d20af38dc197">
+       Translation: I grew up in Busan.
+      </p>
+     </div>
+     <div class="column" id="2f63314f-55b0-806e-af8b-d62450e691d3">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-8003-918f-f4621f0f56b9">
+       <audio aria-label="Korean 2. 저는 부산에서 자랐어요. — Ground Truth" controls="" preload="metadata" src="media/1_0488.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-8088-bf3a-c21dc8876b2e">
+      <p class="media-label">
+       <strong>
+        TensorTract2 (SR: 44100 Hz)
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-8011-8060-f79f87f76376">
+       <audio aria-label="Korean 2. 저는 부산에서 자랐어요. — TensorTract2 (SR: 44100 Hz)" controls="" preload="metadata" src="media/1_0488%201.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-8079-a112-ec942019071a">
+      <p class="media-label">
+       <strong>
+        Ours (SR: 16000 Hz)
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-808e-b04c-c0fde48c9c81">
+       <audio aria-label="Korean 2. 저는 부산에서 자랐어요. — Ours (SR: 16000 Hz)" controls="" preload="metadata" src="media/1_0488%202.wav">
+       </audio>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f63314f-55b0-802c-af63-cd6ebe4879ef"/>
+    <div class="column-list comparison-row audio-comparison" id="2f63314f-55b0-8065-b5ff-c96edadcd1fb">
+     <div class="column transcript" id="2f63314f-55b0-8022-bc48-f3f534365556">
+      <p id="2f63314f-55b0-8009-b5ef-fda9d3dba0e4">
+       <strong>
+        Korean 3.
+       </strong>
+       여름 방학이 눈 깜짝할 사이에 지나갔어.
+      </p>
+      <p class="translation" id="2f63314f-55b0-80cf-8038-ff7a8e8e4563">
+       Translation: Summer vacation passed in a flash.
+      </p>
+     </div>
+     <div class="column" id="2f63314f-55b0-8040-b296-dbbb1f0f61a5">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-80d3-89a6-f5aab3b2e020">
+       <audio aria-label="Korean 3. 여름 방학이 눈 깜짝할 사이에 지나갔어. — Ground Truth" controls="" preload="metadata" src="media/1_0525.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-8012-8bbf-d143711f5d04">
+      <p class="media-label">
+       <strong>
+        TensorTract2 (SR: 44100 Hz)
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-80e0-8a65-e45536bb4f5c">
+       <audio aria-label="Korean 3. 여름 방학이 눈 깜짝할 사이에 지나갔어. — TensorTract2 (SR: 44100 Hz)" controls="" preload="metadata" src="media/1_0525%201.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-8035-8d8c-c3aa55c5ebc1">
+      <p class="media-label">
+       <strong>
+        Ours (SR: 16000 Hz)
+       </strong>
+      </p>
+      <figure id="3593314f-55b0-8056-a86b-db446380a5b9">
+       <audio aria-label="Korean 3. 여름 방학이 눈 깜짝할 사이에 지나갔어. — Ours (SR: 16000 Hz)" controls="" preload="metadata" src="media/1_0525%202.wav">
+       </audio>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f63314f-55b0-8019-819f-c025d4dd5d32"/>
+    <div class="column-list comparison-row audio-comparison" id="2f63314f-55b0-8093-8058-cdbf67a0a664">
+     <div class="column transcript" id="2f63314f-55b0-803a-ad5d-fa2497d0a64c">
+      <p id="2f63314f-55b0-806c-813e-f9c36808a981">
+       <strong>
+        Korean 4.
+       </strong>
+       배가 고파 죽겠어.
+      </p>
+      <p class="translation" id="2f63314f-55b0-807b-93d7-d21d9d6006b1">
+       Translation: I'm starving to death.
+      </p>
+     </div>
+     <div class="column" id="2f63314f-55b0-805c-9416-d0eb3f1018e3">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-8020-8241-ff915e999890">
+       <audio aria-label="Korean 4. 배가 고파 죽겠어. — Ground Truth" controls="" preload="metadata" src="media/2_0099.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-80d3-98b3-fbc25b10e4de">
+      <p class="media-label">
+       <strong>
+        TensorTract2 (SR: 44100 Hz)
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-8027-936b-c72be7945b2e">
+       <audio aria-label="Korean 4. 배가 고파 죽겠어. — TensorTract2 (SR: 44100 Hz)" controls="" preload="metadata" src="media/2_0099%201.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-80f2-beff-f9e84898731a">
+      <p class="media-label">
+       <strong>
+        Ours (SR: 16000 Hz)
+       </strong>
+      </p>
+      <figure id="3593314f-55b0-8013-bc51-e467aafac341">
+       <audio aria-label="Korean 4. 배가 고파 죽겠어. — Ours (SR: 16000 Hz)" controls="" preload="metadata" src="media/2_0099%202.wav">
+       </audio>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f63314f-55b0-80bb-b785-e41c52385ad6"/>
+    <div class="column-list comparison-row audio-comparison" id="2f63314f-55b0-8014-b04b-f54dd8229057">
+     <div class="column transcript" id="2f63314f-55b0-8071-984a-f621f1b73c38">
+      <p id="2f63314f-55b0-8010-b73f-c61c0298471e">
+       <strong>
+        Korean 5.
+       </strong>
+       시험에 떨어져서 속상해 죽겠어요.
+      </p>
+      <p class="translation" id="2f63314f-55b0-8043-b2ae-f50844b0c3fc">
+       Translation: I'm so upset because I failed the test.
+      </p>
+     </div>
+     <div class="column" id="2f63314f-55b0-8091-99f5-de75403236ab">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-80fe-bd2e-e111497a4db0">
+       <audio aria-label="Korean 5. 시험에 떨어져서 속상해 죽겠어요. — Ground Truth" controls="" preload="metadata" src="media/2_0614.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-8086-b1ea-f93c14804a10">
+      <p class="media-label">
+       <strong>
+        TensorTract2 (SR: 44100 Hz)
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-80ea-b4a4-f47b19a58b69">
+       <audio aria-label="Korean 5. 시험에 떨어져서 속상해 죽겠어요. — TensorTract2 (SR: 44100 Hz)" controls="" preload="metadata" src="media/2_0614%201.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-8078-b6b6-f324263173f3">
+      <p class="media-label">
+       <strong>
+        Ours (SR: 16000 Hz)
+       </strong>
+      </p>
+      <figure id="3593314f-55b0-8065-97e1-cfabfd80a721">
+       <audio aria-label="Korean 5. 시험에 떨어져서 속상해 죽겠어요. — Ours (SR: 16000 Hz)" controls="" preload="metadata" src="media/2_0614%202.wav">
+       </audio>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f63314f-55b0-8067-855d-c63ffa7f74fb"/>
+    <div class="column-list comparison-row audio-comparison" id="2f63314f-55b0-8031-a858-e6c9e99fd2ce">
+     <div class="column transcript" id="2f63314f-55b0-8072-b50f-f7b098d24cfc">
+      <p id="2f63314f-55b0-80b6-a206-f46e2abe5e92">
+       <strong>
+        Chinese 1.
+       </strong>
+       现在后悔没带枪了吧。
+       <strong>
+        <br/>
+       </strong>
+       Translation: You regret not bringing a gun now, don’t you?
+      </p>
+     </div>
+     <div class="column" id="2f63314f-55b0-80f9-8d7f-ccd410cf3b03">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-80e2-bd6a-c97993b989fb">
+       <audio aria-label="Chinese 1. 现在后悔没带枪了吧。 Translation: You regret not bringing a gun now, don’t you? — Ground Truth" controls="" preload="metadata" src="media/SSB09970156.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-8084-9cb7-dc2e6c30dd0d">
+      <p class="media-label">
+       <strong>
+        TensorTract2 (SR: 44100 Hz)
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-80f4-95c1-d45a1b580438">
+       <audio aria-label="Chinese 1. 现在后悔没带枪了吧。 Translation: You regret not bringing a gun now, don’t you? — TensorTract2 (SR: 44100 Hz)" controls="" preload="metadata" src="media/SSB09970156%201.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-8098-971c-d3a4ce5f86aa">
+      <p class="media-label">
+       <strong>
+        Ours (SR: 16000 Hz)
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-80b1-9d9c-ded6c686430b">
+       <audio aria-label="Chinese 1. 现在后悔没带枪了吧。 Translation: You regret not bringing a gun now, don’t you? — Ours (SR: 16000 Hz)" controls="" preload="metadata" src="media/SSB09970156%202.wav">
+       </audio>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f63314f-55b0-80d7-8b57-e8849e3fef73"/>
+    <div class="column-list comparison-row audio-comparison" id="2f63314f-55b0-80be-8929-ee61079b47c6">
+     <div class="column transcript" id="2f63314f-55b0-80bb-a75a-d76c5755b9ff">
+      <p id="2f63314f-55b0-802b-bbf8-e657af9f356a">
+       <strong>
+        Chinese 2.
+       </strong>
+       今日正式开启了第八十七届奥斯卡的投票大幕。
+       <br/>
+       Translation: Today marks the official opening of voting for the 87th Oscars.
+      </p>
+     </div>
+     <div class="column" id="2f63314f-55b0-8095-9545-db3f4ea2881a">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-80cc-840a-dfb4f4841c31">
+       <audio aria-label="Chinese 2. 今日正式开启了第八十七届奥斯卡的投票大幕。 Translation: Today marks the official opening of voting for the 87th Oscars. — Ground Truth" controls="" preload="metadata" src="media/SSB09930182.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-805c-86ae-f398daa51afd">
+      <p class="media-label">
+       <strong>
+        TensorTract2 (SR: 44100 Hz)
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-8052-8f31-c156fbba876c">
+       <audio aria-label="Chinese 2. 今日正式开启了第八十七届奥斯卡的投票大幕。 Translation: Today marks the official opening of voting for the 87th Oscars. — TensorTract2 (SR: 44100 Hz)" controls="" preload="metadata" src="media/SSB09930182%201.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-80f8-8c59-f6b9618f7456">
+      <p class="media-label">
+       <strong>
+        Ours (SR: 16000 Hz)
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-80cb-ae52-e2e4dacc355e">
+       <audio aria-label="Chinese 2. 今日正式开启了第八十七届奥斯卡的投票大幕。 Translation: Today marks the official opening of voting for the 87th Oscars. — Ours (SR: 16000 Hz)" controls="" preload="metadata" src="media/SSB09930182%202.wav">
+       </audio>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f63314f-55b0-80b5-8ac9-cc295f04ad36"/>
+    <div class="column-list comparison-row audio-comparison" id="2f63314f-55b0-8024-90c8-fe48ad77f1f0">
+     <div class="column transcript" id="2f63314f-55b0-8019-b2ad-eab5f8bb1cfd">
+      <p id="2f63314f-55b0-8021-8fe7-c7d6f29a131b">
+       <strong>
+        Chinese 3.
+       </strong>
+       周六没有分长短周。
+       <br/>
+       Translation: Saturday does not distinguish between long and short weeks.
+      </p>
+     </div>
+     <div class="column" id="2f63314f-55b0-802e-a62e-dd958cc74ea9">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-8097-9e2b-de644c0f5805">
+       <audio aria-label="Chinese 3. 周六没有分长短周。 Translation: Saturday does not distinguish between long and short weeks. — Ground Truth" controls="" preload="metadata" src="media/SSB11870043.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-805a-98bd-daf90a0ab93e">
+      <p class="media-label">
+       <strong>
+        TensorTract2 (SR: 44100 Hz)
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-803f-8d9f-eeebfb306c7a">
+       <audio aria-label="Chinese 3. 周六没有分长短周。 Translation: Saturday does not distinguish between long and short weeks. — TensorTract2 (SR: 44100 Hz)" controls="" preload="metadata" src="media/SSB11870043%201.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-808f-887d-f62d8c9a5203">
+      <p class="media-label">
+       <strong>
+        Ours (SR: 16000 Hz)
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-804b-b764-f11964333b23">
+       <audio aria-label="Chinese 3. 周六没有分长短周。 Translation: Saturday does not distinguish between long and short weeks. — Ours (SR: 16000 Hz)" controls="" preload="metadata" src="media/SSB11870043%202.wav">
+       </audio>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f63314f-55b0-8041-92f3-ca7fc9e63440"/>
+    <div class="column-list comparison-row audio-comparison" id="2f63314f-55b0-805f-8475-d5f002709c84">
+     <div class="column transcript" id="2f63314f-55b0-8092-91ed-c2fd3df2dc78">
+      <p id="2f63314f-55b0-805f-bbdd-ec7159792bba">
+       <strong>
+        Chinese 4.
+       </strong>
+       房产证上最多可以登记几个人？
+       <br/>
+       Translation: How many people can be registered on a property ownership certificate at most?
+      </p>
+     </div>
+     <div class="column" id="2f63314f-55b0-802d-94cb-d61be178c75f">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-80a1-a732-cabf5e7955af">
+       <audio aria-label="Chinese 4. 房产证上最多可以登记几个人？ Translation: How many people can be registered on a property ownership certificate at most? — Ground Truth" controls="" preload="metadata" src="media/SSB10000112.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-8071-9ab7-c319fa65173b">
+      <p class="media-label">
+       <strong>
+        TensorTract2 (SR: 44100 Hz)
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-80aa-b4fd-f73c5009b98b">
+       <audio aria-label="Chinese 4. 房产证上最多可以登记几个人？ Translation: How many people can be registered on a property ownership certificate at most? — TensorTract2 (SR: 44100 Hz)" controls="" preload="metadata" src="media/SSB10000112%201.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-8008-8b97-ec2421d53006">
+      <p class="media-label">
+       <strong>
+        Ours (SR: 16000 Hz)
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-8096-91af-e8bdf6b544bf">
+       <audio aria-label="Chinese 4. 房产证上最多可以登记几个人？ Translation: How many people can be registered on a property ownership certificate at most? — Ours (SR: 16000 Hz)" controls="" preload="metadata" src="media/SSB10000112_ours.wav">
+       </audio>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f63314f-55b0-80c3-86f2-d6ab6ef70d0c"/>
+    <div class="column-list comparison-row audio-comparison" id="2f63314f-55b0-809c-b5d5-ffbc9f0db32f">
+     <div class="column transcript" id="2f63314f-55b0-80cd-9ba3-dde5156f4d0e">
+      <p id="2f63314f-55b0-80b2-9624-e901240451e3">
+       <strong>
+        Chinese 5:
+       </strong>
+       但毕竟恋人还没有登记
+      </p>
+      <p class="translation" id="2f63314f-55b0-806d-9a55-de47695f3994">
+       Translation: But after all, the couple hasn’t officially registered yet.
+      </p>
+     </div>
+     <div class="column" id="2f63314f-55b0-80aa-8e33-cecffc064f8c">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-8041-aa8f-efaa94c0467a">
+       <audio aria-label="Chinese 5: 但毕竟恋人还没有登记 — Ground Truth" controls="" preload="metadata" src="media/SSB10000363.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-804f-a89a-e2cbae5063ce">
+      <p class="media-label">
+       <strong>
+        TensorTract2 (SR: 44100 Hz)
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-801c-b882-f7bb6c1a7ac7">
+       <audio aria-label="Chinese 5: 但毕竟恋人还没有登记 — TensorTract2 (SR: 44100 Hz)" controls="" preload="metadata" src="media/SSB10000363%201.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f63314f-55b0-80e1-8efe-ee058db444c3">
+      <p class="media-label">
+       <strong>
+        Ours (SR: 16000 Hz)
+       </strong>
+      </p>
+      <figure id="2f63314f-55b0-80dd-95eb-c64aaaf6c87d">
+       <audio aria-label="Chinese 5: 但毕竟恋人还没有登记 — Ours (SR: 16000 Hz)" controls="" preload="metadata" src="media/SSB10000363%202.wav">
+       </audio>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f63314f-55b0-802a-97e0-e51e14fd6dd9"/>
+    <div class="column-list comparison-row audio-comparison" id="2f73314f-55b0-80a3-b30b-d04ee6cd107e">
+     <div class="column transcript" id="2f73314f-55b0-8010-81a6-dc1002960b62">
+      <p id="2f63314f-55b0-802d-b92c-dfe7492e4ab5">
+       <strong>
+        German 1.
+       </strong>
+       Dann, als er alles wusste, forderte er mich auf, ihm unsere Zeichnungen und das Tagebuch zu zeigen. Ich brauchte ihm diesen Wunsch nicht zu erfüllen, tat es aber dennoch, weil ich ihn sonst beleidigt hätte, und ich sah doch, dass er es gut mit mir meinte.
+      </p>
+      <p class="translation" id="2f73314f-55b0-8064-972b-fc80ad9d1a7a">
+       Translation: Then, once he knew everything, he asked me to show him our sketches and the diary. I did not have to grant him this request, but I did so anyway, because otherwise I would have offended him—and I could see that he meant well by me.
+      </p>
+     </div>
+     <div class="column" id="2f73314f-55b0-80ef-a064-f954868e4aba">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-8081-b22a-e50525750681">
+       <audio aria-label="German 1. Dann, als er alles wusste, forderte er mich auf, ihm unsere Zeichnungen und das Tagebuch zu zeigen. Ich brauchte ihm diesen Wunsch nicht zu erfüllen, tat es aber dennoch, weil ich ihn sonst beleidigt hätte, und ich sah doch, dass er es gut mit mir meinte. — Ground Truth" controls="" preload="metadata" src="media/91_82_000093.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f73314f-55b0-801b-906a-dab6ee577517">
+      <p class="media-label">
+       <strong>
+        TensorTract2 (SR: 44100 Hz)
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-80b8-821d-f45316bf6e3e">
+       <audio aria-label="German 1. Dann, als er alles wusste, forderte er mich auf, ihm unsere Zeichnungen und das Tagebuch zu zeigen. Ich brauchte ihm diesen Wunsch nicht zu erfüllen, tat es aber dennoch, weil ich ihn sonst beleidigt hätte, und ich sah doch, dass er es gut mit mir meinte. — TensorTract2 (SR: 44100 Hz)" controls="" preload="metadata" src="media/91_82_000093%201.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f73314f-55b0-805e-badd-e0a72c05dcc3">
+      <p class="media-label">
+       <strong>
+        Ours (SR: 16000 Hz)
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-806e-89db-fe8326c3cd97">
+       <audio aria-label="German 1. Dann, als er alles wusste, forderte er mich auf, ihm unsere Zeichnungen und das Tagebuch zu zeigen. Ich brauchte ihm diesen Wunsch nicht zu erfüllen, tat es aber dennoch, weil ich ihn sonst beleidigt hätte, und ich sah doch, dass er es gut mit mir meinte. — Ours (SR: 16000 Hz)" controls="" preload="metadata" src="media/91_82_000093%202.wav">
+       </audio>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f73314f-55b0-80e8-84c1-ed5f78eedea0"/>
+    <div class="column-list comparison-row audio-comparison" id="2f73314f-55b0-8060-9c6d-f50035f9495d">
+     <div class="column transcript" id="2f73314f-55b0-80fd-8c86-e2f3bca6c46e">
+      <p id="2f73314f-55b0-806b-892e-dba815df26e7">
+       <strong>
+        German 2.
+       </strong>
+       Ich möchte nicht bloß, sondern ich werde es wirklich tun. Wenn er gefangen wird, werde ich ihn befreien, und wenn etwa gar die Waffen gegen ihn gebraucht werden sollen, so stelle ich mich auf seine Seite und kämpfe für ihn. Das will ich euch offen und ehrlich sagen. So, das werdet ihr tun? Wirklich? Ja, ich habe es einem Sterbenden in die Hand versprochen, und ein solches Gelöbnis ist mir der
+      </p>
+      <p class="translation" id="2f73314f-55b0-8046-9eed-c379cfa43deb">
+       Translation: I do not merely wish to do it, I truly will. If he is captured, I will free him, and if weapons are to be used against him, then I will take his side and fight for him. I want to tell you this openly and honestly. So, that is what you will do? Really? Yes, I promised it into the hand of a dying man, and such a vow is to me the
+      </p>
+     </div>
+     <div class="column" id="2f73314f-55b0-8055-8745-e60c075d20b2">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-8098-8517-d2b496c059b4">
+       <audio aria-label="German 2. Ich möchte nicht bloß, sondern ich werde es wirklich tun. Wenn er gefangen wird, werde ich ihn befreien, und wenn etwa gar die Waffen gegen ihn gebraucht werden sollen, so stelle ich mich auf seine Seite und kämpfe für ihn. Das will ich euch offen und ehrlich sagen. So, das werdet ihr tun? Wirklich? Ja, ich habe es einem Sterbenden in die Hand versprochen, und ein solches Gelöbnis ist mir der — Ground Truth" controls="" preload="metadata" src="media/140_82_000025.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f73314f-55b0-80e3-8df6-f545d6795639">
+      <p class="media-label">
+       <strong>
+        TensorTract2 (SR: 44100 Hz)
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-8076-a41a-fef9949cce3e">
+       <audio aria-label="German 2. Ich möchte nicht bloß, sondern ich werde es wirklich tun. Wenn er gefangen wird, werde ich ihn befreien, und wenn etwa gar die Waffen gegen ihn gebraucht werden sollen, so stelle ich mich auf seine Seite und kämpfe für ihn. Das will ich euch offen und ehrlich sagen. So, das werdet ihr tun? Wirklich? Ja, ich habe es einem Sterbenden in die Hand versprochen, und ein solches Gelöbnis ist mir der — TensorTract2 (SR: 44100 Hz)" controls="" preload="metadata" src="media/140_82_000025%201.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f73314f-55b0-80e5-b5db-e624b11c545a">
+      <p class="media-label">
+       <strong>
+        Ours (SR: 16000 Hz)
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-80fa-920d-fc5bbbe95a52">
+       <audio aria-label="German 2. Ich möchte nicht bloß, sondern ich werde es wirklich tun. Wenn er gefangen wird, werde ich ihn befreien, und wenn etwa gar die Waffen gegen ihn gebraucht werden sollen, so stelle ich mich auf seine Seite und kämpfe für ihn. Das will ich euch offen und ehrlich sagen. So, das werdet ihr tun? Wirklich? Ja, ich habe es einem Sterbenden in die Hand versprochen, und ein solches Gelöbnis ist mir der — Ours (SR: 16000 Hz)" controls="" preload="metadata" src="media/140_82_000025%202.wav">
+       </audio>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f73314f-55b0-809d-8be9-eb7e7d1c20d5"/>
+    <div class="column-list comparison-row audio-comparison" id="2f73314f-55b0-8013-a89a-d31aad4f724d">
+     <div class="column transcript" id="2f73314f-55b0-8080-bc74-d9a1ce4809e3">
+      <p id="2f73314f-55b0-8088-acae-fe96a6a91c52">
+       <strong>
+        German 3.
+       </strong>
+       Nicht, dass es ihm an irgendeinem Bedürfnis fehle; denn er weiß sich durchaus zu beschränken, und für das Notwendige habe ich gesorgt. Auch drückt es ihn nicht, etwas von mir anzunehmen.
+      </p>
+      <p class="translation" id="2f73314f-55b0-80ad-aa16-e8ec1777946c">
+       Translation: It is not that he lacks any necessity, for he knows very well how to restrain himself, and I have provided for what is essential. Nor does it trouble him to accept something from me.
+      </p>
+     </div>
+     <div class="column" id="2f73314f-55b0-808d-9184-c260aabeea9f">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-8096-95d7-e79485bb093c">
+       <audio aria-label="German 3. Nicht, dass es ihm an irgendeinem Bedürfnis fehle; denn er weiß sich durchaus zu beschränken, und für das Notwendige habe ich gesorgt. Auch drückt es ihn nicht, etwas von mir anzunehmen. — Ground Truth" controls="" preload="metadata" src="media/278_2431_000046.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f73314f-55b0-80ae-971c-d7e8b324fad7">
+      <p class="media-label">
+       <strong>
+        TensorTract2 (SR: 44100 Hz)
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-8027-b11f-cf92e7ec4b8a">
+       <audio aria-label="German 3. Nicht, dass es ihm an irgendeinem Bedürfnis fehle; denn er weiß sich durchaus zu beschränken, und für das Notwendige habe ich gesorgt. Auch drückt es ihn nicht, etwas von mir anzunehmen. — TensorTract2 (SR: 44100 Hz)" controls="" preload="metadata" src="media/278_2431_000046%201.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f73314f-55b0-8048-bd1b-e10ef1220c89">
+      <p class="media-label">
+       <strong>
+        Ours (SR: 16000 Hz)
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-80c2-86e1-fb0464e357da">
+       <audio aria-label="German 3. Nicht, dass es ihm an irgendeinem Bedürfnis fehle; denn er weiß sich durchaus zu beschränken, und für das Notwendige habe ich gesorgt. Auch drückt es ihn nicht, etwas von mir anzunehmen. — Ours (SR: 16000 Hz)" controls="" preload="metadata" src="media/278_2431_000046%202.wav">
+       </audio>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f73314f-55b0-80d3-9fc6-ffc734fcccef"/>
+    <div class="column-list comparison-row audio-comparison" id="2f73314f-55b0-804e-8acb-f219386f09c0">
+     <div class="column transcript" id="2f73314f-55b0-8057-b5bd-d2707d0b4b8b">
+      <p id="2f73314f-55b0-8043-80b3-f28be636aadf">
+       <strong>
+        German 4.
+       </strong>
+       Der Kaplan bat sich ein Glas Wasser aus, weil er sehr erschöpft war durch die Anstrengungen, von der Kirche ins Schloß zu kommen. Die Kammerfrau lief schnell und brachte ihm ein Glas Öl.
+      </p>
+      <p class="translation" id="2f73314f-55b0-8033-860b-f247a9dd71e0">
+       Translation: The chaplain asked for a glass of water, as he was very exhausted from the effort of getting from the church to the castle. The maid hurried off and brought him a glass of oil.
+      </p>
+     </div>
+     <div class="column" id="2f73314f-55b0-8090-8949-cef4585d0112">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-8005-b32c-e8f9ad310fc1">
+       <audio aria-label="German 4. Der Kaplan bat sich ein Glas Wasser aus, weil er sehr erschöpft war durch die Anstrengungen, von der Kirche ins Schloß zu kommen. Die Kammerfrau lief schnell und brachte ihm ein Glas Öl. — Ground Truth" controls="" preload="metadata" src="media/4739_3957_000051.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f73314f-55b0-8061-be37-f0bafaa1d0df">
+      <p class="media-label">
+       <strong>
+        TensorTract2 (SR: 44100 Hz)
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-80a6-a00d-e3d1da9ff968">
+       <audio aria-label="German 4. Der Kaplan bat sich ein Glas Wasser aus, weil er sehr erschöpft war durch die Anstrengungen, von der Kirche ins Schloß zu kommen. Die Kammerfrau lief schnell und brachte ihm ein Glas Öl. — TensorTract2 (SR: 44100 Hz)" controls="" preload="metadata" src="media/4739_3957_000051%201.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f73314f-55b0-803c-b43e-cdec8fcfbb8e">
+      <p class="media-label">
+       <strong>
+        Ours (SR: 16000 Hz)
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-806f-b629-f0f3466a5f84">
+       <audio aria-label="German 4. Der Kaplan bat sich ein Glas Wasser aus, weil er sehr erschöpft war durch die Anstrengungen, von der Kirche ins Schloß zu kommen. Die Kammerfrau lief schnell und brachte ihm ein Glas Öl. — Ours (SR: 16000 Hz)" controls="" preload="metadata" src="media/4739_3957_000051%202.wav">
+       </audio>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f73314f-55b0-8077-9dad-c5fa80a1465d"/>
+    <div class="column-list comparison-row audio-comparison" id="2f73314f-55b0-8093-836c-e3c4ee54b476">
+     <div class="column transcript" id="2f73314f-55b0-80e5-8b02-e98589a34441">
+      <p id="2f73314f-55b0-80bd-a4d3-d3fa46b84d98">
+       <strong>
+        German 5.
+       </strong>
+       Die wilden Bienen summten in Ginster und Klee, der Kuckuck rief von ferne, der Wind fuhr leise durch die blühenden Zweige der Linde. Das Weib sucht bei dem Manne, den es liebt, Schutz.
+      </p>
+      <p class="translation" id="2f73314f-55b0-80c2-8740-c6e289159e95">
+       Translation: The wild bees buzzed among broom and clover, the cuckoo called from afar, the wind passed softly through the blossoming branches of the linden tree. The woman seeks protection from the man she loves.
+      </p>
+     </div>
+     <div class="column" id="2f73314f-55b0-80d5-8fbe-d808c145de11">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-80b5-81f6-f7b02c0d30a2">
+       <audio aria-label="German 5. Die wilden Bienen summten in Ginster und Klee, der Kuckuck rief von ferne, der Wind fuhr leise durch die blühenden Zweige der Linde. Das Weib sucht bei dem Manne, den es liebt, Schutz. — Ground Truth" controls="" preload="metadata" src="media/11695_8674_000056.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f73314f-55b0-804a-be25-c317225106a9">
+      <p class="media-label">
+       <strong>
+        TensorTract2 (SR: 44100 Hz)
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-800c-bc15-e598c5995cf9">
+       <audio aria-label="German 5. Die wilden Bienen summten in Ginster und Klee, der Kuckuck rief von ferne, der Wind fuhr leise durch die blühenden Zweige der Linde. Das Weib sucht bei dem Manne, den es liebt, Schutz. — TensorTract2 (SR: 44100 Hz)" controls="" preload="metadata" src="media/11695_8674_000056%201.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f73314f-55b0-80dc-91d8-ebbefbb7d20c">
+      <p class="media-label">
+       <strong>
+        Ours (SR: 16000 Hz)
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-8024-a36a-e255b23ec13e">
+       <audio aria-label="German 5. Die wilden Bienen summten in Ginster und Klee, der Kuckuck rief von ferne, der Wind fuhr leise durch die blühenden Zweige der Linde. Das Weib sucht bei dem Manne, den es liebt, Schutz. — Ours (SR: 16000 Hz)" controls="" preload="metadata" src="media/11695_8674_000056%202.wav">
+       </audio>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f73314f-55b0-8040-8ca1-df8a5ca67cfb"/>
+    <div class="column-list comparison-row audio-comparison" id="2f73314f-55b0-80e3-9e2e-c56dc0cff0b1">
+     <div class="column transcript" id="2f73314f-55b0-80fe-9813-e1ab5a6a8772">
+      <p id="2f73314f-55b0-80f1-b6ff-cd11450cfc82">
+       <strong>
+        French 1.
+       </strong>
+       Ce regard est peut-être une comédie, pensa Julien; mais cette respiration pressée, mais tout ce trouble… Bah! se dit-il, qui suis-je pour juger de toutes ces choses? Il s’agit ici de ce qu’il y a de plus sublime et de plus fin parmi les femmes de Paris.
+      </p>
+      <p class="translation" id="2f73314f-55b0-80c2-9a55-eba890d59440">
+       Translation: That look may perhaps be an act, thought Julien; but that hurried breathing, all that agitation… Bah! he said to himself, who am I to judge all these things? What is at stake here is what is most sublime and most refined among the women of Paris.
+      </p>
+     </div>
+     <div class="column" id="2f73314f-55b0-809f-858d-db5b831bdf0d">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-8053-8b45-c811bc84b251">
+       <audio aria-label="French 1. Ce regard est peut-être une comédie, pensa Julien; mais cette respiration pressée, mais tout ce trouble… Bah! se dit-il, qui suis-je pour juger de toutes ces choses? Il s’agit ici de ce qu’il y a de plus sublime et de plus fin parmi les femmes de Paris. — Ground Truth" controls="" preload="metadata" src="media/12080_11650_000030.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f73314f-55b0-80db-877f-c05b7ce7c48c">
+      <p class="media-label">
+       <strong>
+        TensorTract2 (SR: 44100 Hz)
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-802c-a816-f1ad69cfe4f2">
+       <audio aria-label="French 1. Ce regard est peut-être une comédie, pensa Julien; mais cette respiration pressée, mais tout ce trouble… Bah! se dit-il, qui suis-je pour juger de toutes ces choses? Il s’agit ici de ce qu’il y a de plus sublime et de plus fin parmi les femmes de Paris. — TensorTract2 (SR: 44100 Hz)" controls="" preload="metadata" src="media/12080_11650_000030%201.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f73314f-55b0-8012-bf07-dbf2001a83d3">
+      <p class="media-label">
+       <strong>
+        Ours (SR: 16000 Hz)
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-80d9-852a-fefb8e6d9c48">
+       <audio aria-label="French 1. Ce regard est peut-être une comédie, pensa Julien; mais cette respiration pressée, mais tout ce trouble… Bah! se dit-il, qui suis-je pour juger de toutes ces choses? Il s’agit ici de ce qu’il y a de plus sublime et de plus fin parmi les femmes de Paris. — Ours (SR: 16000 Hz)" controls="" preload="metadata" src="media/12080_11650_000030%202.wav">
+       </audio>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f73314f-55b0-8077-8a19-f9045a1adf2a"/>
+    <div class="column-list comparison-row audio-comparison" id="2f73314f-55b0-8039-903c-c37d243201c1">
+     <div class="column transcript" id="2f73314f-55b0-800f-865f-c8c4e2df9aac">
+      <p id="2f73314f-55b0-80e6-96e4-dff960b0a4d3">
+       <strong>
+        French 2.
+       </strong>
+       Il n’y en avait pas pourtant; mais il y trouva un vase de cuivre jaune qui, à sa pesanteur, lui parut plein de quelque chose, et il remarqua qu’il était fermé et scellé de plomb avec l’empreinte d’un sceau.
+      </p>
+      <p class="translation" id="2f73314f-55b0-8046-8533-d340c87ddc3f">
+       Translation: There were none, however; but he found there a yellow copper vessel which, by its weight, seemed to him to be full of something, and he noticed that it was closed and sealed with lead bearing the impression of a seal.
+      </p>
+     </div>
+     <div class="column" id="2f73314f-55b0-80d4-82da-f5af37d96e7e">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-80ff-a81e-c4a1e8f62d30">
+       <audio aria-label="French 2. Il n’y en avait pas pourtant; mais il y trouva un vase de cuivre jaune qui, à sa pesanteur, lui parut plein de quelque chose, et il remarqua qu’il était fermé et scellé de plomb avec l’empreinte d’un sceau. — Ground Truth" controls="" preload="metadata" src="media/1406_1028_000039.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f73314f-55b0-801f-b517-fd02355e513c">
+      <p class="media-label">
+       <strong>
+        TensorTract2 (SR: 44100 Hz)
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-806c-a31f-d34def7580b7">
+       <audio aria-label="French 2. Il n’y en avait pas pourtant; mais il y trouva un vase de cuivre jaune qui, à sa pesanteur, lui parut plein de quelque chose, et il remarqua qu’il était fermé et scellé de plomb avec l’empreinte d’un sceau. — TensorTract2 (SR: 44100 Hz)" controls="" preload="metadata" src="media/1406_1028_000039%201.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f73314f-55b0-80f9-82a4-d46530114848">
+      <p class="media-label">
+       <strong>
+        Ours (SR: 16000 Hz)
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-80bf-9e04-fa3092945a81">
+       <audio aria-label="French 2. Il n’y en avait pas pourtant; mais il y trouva un vase de cuivre jaune qui, à sa pesanteur, lui parut plein de quelque chose, et il remarqua qu’il était fermé et scellé de plomb avec l’empreinte d’un sceau. — Ours (SR: 16000 Hz)" controls="" preload="metadata" src="media/1406_1028_000039%202.wav">
+       </audio>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f73314f-55b0-8013-8c6a-efc28ae4e297"/>
+    <div class="column-list comparison-row audio-comparison" id="2f73314f-55b0-802c-abc5-fc7e5a1635ca">
+     <div class="column transcript" id="2f73314f-55b0-80ec-8865-fa662cecb4a5">
+      <p id="2f73314f-55b0-80db-b41a-fb10074f6ded">
+       <strong>
+        French 3.
+       </strong>
+       La science a déterminé sur le globe la direction de cinq courants principaux: un dans l’Atlantique nord, un second dans l’Atlantique sud, un troisième dans le Pacifique nord, un quatrième dans le Pacifique sud, et un cinquième dans l’océan Indien sud.
+      </p>
+      <p class="translation" id="2f73314f-55b0-80b8-95ad-f74f630acdb2">
+       Translation: Science has determined, across the globe, the direction of five principal currents: one in the North Atlantic, a second in the South Atlantic, a third in the North Pacific, a fourth in the South Pacific, and a fifth in the southern Indian Ocean.
+      </p>
+     </div>
+     <div class="column" id="2f73314f-55b0-806a-a9c4-fff68f09691a">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-804e-878f-d18438cf8879">
+       <audio aria-label="French 3. La science a déterminé sur le globe la direction de cinq courants principaux: un dans l’Atlantique nord, un second dans l’Atlantique sud, un troisième dans le Pacifique nord, un quatrième dans le Pacifique sud, et un cinquième dans l’océan Indien sud. — Ground Truth" controls="" preload="metadata" src="media/4482_3103_000079.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f73314f-55b0-806c-8bcb-d53d8ee502ad">
+      <p class="media-label">
+       <strong>
+        TensorTract2 (SR: 44100 Hz)
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-80b0-a127-f4feb062f594">
+       <audio aria-label="French 3. La science a déterminé sur le globe la direction de cinq courants principaux: un dans l’Atlantique nord, un second dans l’Atlantique sud, un troisième dans le Pacifique nord, un quatrième dans le Pacifique sud, et un cinquième dans l’océan Indien sud. — TensorTract2 (SR: 44100 Hz)" controls="" preload="metadata" src="media/4482_3103_000079%201.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f73314f-55b0-802f-8c82-eb6f07868d6b">
+      <p class="media-label">
+       <strong>
+        Ours (SR: 16000 Hz)
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-801b-90b4-d6b13767f3d5">
+       <audio aria-label="French 3. La science a déterminé sur le globe la direction de cinq courants principaux: un dans l’Atlantique nord, un second dans l’Atlantique sud, un troisième dans le Pacifique nord, un quatrième dans le Pacifique sud, et un cinquième dans l’océan Indien sud. — Ours (SR: 16000 Hz)" controls="" preload="metadata" src="media/4482_3103_000079%202.wav">
+       </audio>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f73314f-55b0-800e-acd3-c8b4bcad503a"/>
+    <div class="column-list comparison-row audio-comparison" id="2f73314f-55b0-801c-9a6d-d3b7c2bae7ac">
+     <div class="column transcript" id="2f73314f-55b0-804b-96ea-d5eed3b50921">
+      <p id="2f73314f-55b0-80ea-a507-c91fefc00793">
+       <strong>
+        French 4.
+       </strong>
+       Je me retournai vers le capitaine Nemo. Ce terrible justicier, véritable archange de la haine, regardait toujours. Quand tout fut fini, le capitaine Nemo, se dirigeant vers la porte de sa chambre, l’ouvrit et entra. Je le suivis des yeux.
+      </p>
+      <p class="translation" id="2f73314f-55b0-8072-bb9f-ece7cb33847a">
+       Translation: I turned toward Captain Nemo. That terrible avenger, a true archangel of hatred, was still watching. When everything was over, Captain Nemo, heading toward the door of his cabin, opened it and went in. I followed him with my eyes.
+      </p>
+     </div>
+     <div class="column" id="2f73314f-55b0-8032-bcf0-e5bedbbaa256">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-80ce-988e-c6df2a75dfc1">
+       <audio aria-label="French 4. Je me retournai vers le capitaine Nemo. Ce terrible justicier, véritable archange de la haine, regardait toujours. Quand tout fut fini, le capitaine Nemo, se dirigeant vers la porte de sa chambre, l’ouvrit et entra. Je le suivis des yeux. — Ground Truth" controls="" preload="metadata" src="media/5476_3103_000045.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f73314f-55b0-806f-9757-fa30bfa58bed">
+      <p class="media-label">
+       <strong>
+        TensorTract2 (SR: 44100 Hz)
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-80c6-880c-d9f934e2cdba">
+       <audio aria-label="French 4. Je me retournai vers le capitaine Nemo. Ce terrible justicier, véritable archange de la haine, regardait toujours. Quand tout fut fini, le capitaine Nemo, se dirigeant vers la porte de sa chambre, l’ouvrit et entra. Je le suivis des yeux. — TensorTract2 (SR: 44100 Hz)" controls="" preload="metadata" src="media/5476_3103_000045%201.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f73314f-55b0-809d-9531-fc3005b32911">
+      <p class="media-label">
+       <strong>
+        Ours (SR: 16000 Hz)
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-800a-b4a2-e37b8fbee824">
+       <audio aria-label="French 4. Je me retournai vers le capitaine Nemo. Ce terrible justicier, véritable archange de la haine, regardait toujours. Quand tout fut fini, le capitaine Nemo, se dirigeant vers la porte de sa chambre, l’ouvrit et entra. Je le suivis des yeux. — Ours (SR: 16000 Hz)" controls="" preload="metadata" src="media/5476_3103_000045%202.wav">
+       </audio>
+      </figure>
+     </div>
+    </div>
+    <hr id="2f73314f-55b0-8034-becf-ca365ebffec0"/>
+    <div class="column-list comparison-row audio-comparison" id="2f73314f-55b0-80ec-8753-e57b814c50f4">
+     <div class="column transcript" id="2f73314f-55b0-8071-b586-f95d0a09f456">
+      <p id="2f73314f-55b0-8052-98aa-cd5d153aaef1">
+       <strong>
+        French 5.
+       </strong>
+       Pas de filaments, pas de rubans, si minces qu’ils fussent, qui ne se tinssent droits comme des tiges de fer. Les fucus et les lianes se développaient suivant une ligne rigide et perpendiculaire, commandée par la densité de l’élément qui les avait produits.
+      </p>
+      <p class="translation" id="2f73314f-55b0-8042-a7a9-ca35833e5f46">
+       Translation: No filaments, no ribbons, however thin they might be, that did not stand straight like iron rods. The fucus and the lianas developed along a rigid, perpendicular line, governed by the density of the element that had produced them.
+      </p>
+     </div>
+     <div class="column" id="2f73314f-55b0-8016-950a-e6eb986112e5">
+      <p class="media-label">
+       <strong>
+        Ground Truth
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-80c6-a319-c04c29508cac">
+       <audio aria-label="French 5. Pas de filaments, pas de rubans, si minces qu’ils fussent, qui ne se tinssent droits comme des tiges de fer. Les fucus et les lianes se développaient suivant une ligne rigide et perpendiculaire, commandée par la densité de l’élément qui les avait produits. — Ground Truth" controls="" preload="metadata" src="media/5476_3103_000108.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f73314f-55b0-80a5-8567-ca15b1658ce1">
+      <p class="media-label">
+       <strong>
+        TensorTract2 (SR: 44100 Hz)
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-80cb-8379-e3bf80e416b9">
+       <audio aria-label="French 5. Pas de filaments, pas de rubans, si minces qu’ils fussent, qui ne se tinssent droits comme des tiges de fer. Les fucus et les lianes se développaient suivant une ligne rigide et perpendiculaire, commandée par la densité de l’élément qui les avait produits. — TensorTract2 (SR: 44100 Hz)" controls="" preload="metadata" src="media/5476_3103_000108%201.wav">
+       </audio>
+      </figure>
+     </div>
+     <div class="column" id="2f73314f-55b0-8081-beb6-d5fe340ef0a8">
+      <p class="media-label">
+       <strong>
+        Ours (SR: 16000 Hz)
+       </strong>
+      </p>
+      <figure id="2f73314f-55b0-80eb-a4da-deb8aff77dfa">
+       <audio aria-label="French 5. Pas de filaments, pas de rubans, si minces qu’ils fussent, qui ne se tinssent droits comme des tiges de fer. Les fucus et les lianes se développaient suivant une ligne rigide et perpendiculaire, commandée par la densité de l’élément qui les avait produits. — Ours (SR: 16000 Hz)" controls="" preload="metadata" src="media/5476_3103_000108%202.wav">
+       </audio>
+      </figure>
+     </div>
+    </div>
+   </div>
+  </article>
+ </body>
+</html>
